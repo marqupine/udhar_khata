@@ -4,12 +4,18 @@ class Customer {
   final String id;
   final String name;
   final String phoneNumber;
+  final String address;
+  final String addedByUserId;
+  final String addedByUserName;
   final DateTime createdAt;
 
   Customer({
     required this.id,
     required this.name,
-    required this.phoneNumber,
+    this.phoneNumber = '',
+    this.address = '',
+    this.addedByUserId = '',
+    this.addedByUserName = '',
     required this.createdAt,
   });
 
@@ -18,6 +24,9 @@ class Customer {
       'id': id,
       'name': name,
       'phoneNumber': phoneNumber,
+      'address': address,
+      'addedByUserId': addedByUserId,
+      'addedByUserName': addedByUserName,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -27,12 +36,54 @@ class Customer {
       id: map['id'] ?? '',
       name: map['name'] ?? '',
       phoneNumber: map['phoneNumber'] ?? '',
+      address: map['address'] ?? '',
+      addedByUserId: map['addedByUserId'] ?? '',
+      addedByUserName: map['addedByUserName'] ?? '',
       createdAt: DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
     );
   }
 
   String toJson() => json.encode(toMap());
   factory Customer.fromJson(String source) => Customer.fromMap(json.decode(source));
+}
+
+class AppUser {
+  final String uid;
+  final String name;
+  final String email;
+  final String phoneNumber;
+  final DateTime createdAt;
+
+  AppUser({
+    required this.uid,
+    required this.name,
+    required this.email,
+    this.phoneNumber = '',
+    required this.createdAt,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'uid': uid,
+      'name': name,
+      'email': email,
+      'phoneNumber': phoneNumber,
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
+
+  factory AppUser.fromMap(Map<String, dynamic> map) {
+    return AppUser(
+      uid: map['uid'] ?? '',
+      name: map['name'] ?? '',
+      email: map['email'] ?? '',
+      phoneNumber: map['phoneNumber'] ?? '',
+      createdAt: DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
+    );
+  }
+
+  String toJson() => json.encode(toMap());
+  factory AppUser.fromJson(String source) => AppUser.fromMap(json.decode(source));
 }
 
 class GoodItem {
