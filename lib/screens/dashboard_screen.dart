@@ -1,17 +1,27 @@
 import 'package:flutter/material.dart';
-
+import '../constants/app_constants.dart';
 import '../models/models.dart';
+import '../services/auth_service.dart';
+import '../services/security_service.dart';
 import '../services/udhar_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/add_customer_dialog.dart';
 import '../widgets/add_goods_dialog.dart';
 import '../widgets/record_payment_dialog.dart';
+import '../widgets/security_settings_dialog.dart';
 import 'customer_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final UdharRepository repository;
+  final AuthService authService;
+  final SecurityService securityService;
 
-  const DashboardScreen({super.key, required this.repository});
+  const DashboardScreen({
+    super.key,
+    required this.repository,
+    required this.authService,
+    required this.securityService,
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -21,25 +31,92 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _searchQuery = '';
   String _activeFilter = 'All'; // 'All', 'Owed', 'Settled'
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkPeriodicBiometricPrompt();
+    });
+  }
+
+  Future<void> _checkPeriodicBiometricPrompt() async {
+    final shouldPrompt = await widget.securityService.shouldPromptBiometricSetup(gapInDays: 10);
+    if (shouldPrompt && mounted) {
+      // Record prompt timestamp so user isn't prompted again for another 10-15 days
+      await widget.securityService.updateLastBiometricPromptTime();
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.fingerprint_rounded, color: AppTheme.saffronPrimary, size: 28),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Enable Biometric Lock',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Secure your ${AppConstants.appName} data quickly with fingerprint or face recognition. Note: You will need to set up a 4-digit MPIN first if you haven\'t already.',
+            style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Not Now', style: TextStyle(color: AppTheme.textMuted)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                SecuritySettingsDialog.show(context, widget.securityService);
+              },
+              child: const Text('SETUP LOCK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   void _openAddCustomerDialog() async {
     final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (context) => const AddCustomerDialog(),
+      builder: (context) => AddCustomerDialog(repository: widget.repository),
     );
 
     if (result != null) {
-      final customer = await widget.repository.addCustomer(
-        name: result['name']!,
-        phoneNumber: result['phone']!,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Customer "${customer.name}" created successfully!'),
-            backgroundColor: AppTheme.primary,
-          ),
+      try {
+        final customer = await widget.repository.addCustomer(
+          name: result['name']!,
+          phoneNumber: result['phone'] ?? '',
+          address: result['address'] ?? '',
+          addedByUserId: widget.authService.currentUserId,
+          addedByUserName: widget.authService.currentUserName,
         );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Customer "${customer.name}" created successfully!'),
+              backgroundColor: AppTheme.saffronPrimary,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceAll('ArgumentError: ', '').replaceAll('Exception: ', '')),
+              backgroundColor: AppTheme.pendingText,
+            ),
+          );
+        }
       }
     }
   }
@@ -62,7 +139,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Added "${result['name']}" for ${customer.name}'),
-            backgroundColor: AppTheme.primary,
+            backgroundColor: AppTheme.saffronPrimary,
           ),
         );
       }
@@ -75,7 +152,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('This customer has no pending balance to pay!'),
-          backgroundColor: AppTheme.primary,
+          backgroundColor: AppTheme.saffronPrimary,
         ),
       );
       return;
@@ -100,7 +177,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Payment of ₹${result['amount']} recorded with FIFO settlement!'),
-            backgroundColor: AppTheme.primary,
+            backgroundColor: AppTheme.paidText,
           ),
         );
       }
@@ -136,14 +213,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
           appBar: AppBar(
             title: const Row(
               children: [
-                Icon(Icons.menu_book_rounded, color: AppTheme.primary, size: 26),
+                Icon(Icons.account_balance_wallet_rounded, color: AppTheme.saffronPrimary, size: 26),
                 SizedBox(width: 10),
                 Text(
-                  'Udhar Khata',
+                  AppConstants.appName,
                   style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                 ),
               ],
             ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.shield_outlined, color: AppTheme.saffronDark),
+                tooltip: 'Security Settings',
+                onPressed: () => SecuritySettingsDialog.show(context, widget.securityService),
+              ),
+              IconButton(
+                icon: const Icon(Icons.logout_rounded, color: AppTheme.textSecondary),
+                tooltip: 'Sign Out',
+                onPressed: () async {
+                  await widget.authService.signOut();
+                },
+              ),
+            ],
           ),
           floatingActionButton: FloatingActionButton.extended(
             onPressed: _openAddCustomerDialog,
@@ -161,18 +252,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       // Grand Pending Balance Hero Card
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.all(22),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [AppTheme.primaryDark, AppTheme.primary],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(20),
+                          gradient: AppTheme.primaryGradient,
+                          borderRadius: BorderRadius.circular(22),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.primary.withValues(alpha:0.3),
-                              blurRadius: 12,
+                              color: AppTheme.saffronPrimary.withValues(alpha: 0.3),
+                              blurRadius: 14,
                               offset: const Offset(0, 6),
                             ),
                           ],
@@ -186,15 +273,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 const Text(
                                   'Total Outstanding Debt',
                                   style: TextStyle(
-                                    color: Colors.white70,
+                                    color: Colors.white,
                                     fontSize: 14,
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha:0.2),
+                                    color: Colors.black.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
@@ -213,19 +300,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               '₹${grandPending.toStringAsFixed(2)}',
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 34,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
                               ),
                             ),
                             const SizedBox(height: 12),
                             Row(
                               children: [
-                                const Icon(Icons.check_circle_rounded, color: Color(0xFFA7F3D0), size: 16),
+                                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 16),
                                 const SizedBox(width: 6),
                                 Text(
                                   'Total Collected So Far: ₹${grandSettled.toStringAsFixed(2)}',
                                   style: const TextStyle(
-                                    color: Color(0xFFA7F3D0),
+                                    color: Colors.white,
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -241,7 +329,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       TextField(
                         decoration: InputDecoration(
                           hintText: 'Search customer by name or phone...',
-                          prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.textSecondary),
+                          prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.saffronPrimary),
                           suffixIcon: _searchQuery.isNotEmpty
                               ? IconButton(
                                   icon: const Icon(Icons.clear_rounded, color: AppTheme.textSecondary),
@@ -309,7 +397,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                             return Card(
                               child: InkWell(
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(18),
                                 onTap: () {
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
@@ -327,8 +415,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       Row(
                                         children: [
                                           CircleAvatar(
-                                            backgroundColor: AppTheme.primary.withValues(alpha:0.12),
-                                            foregroundColor: AppTheme.primary,
+                                            backgroundColor: AppTheme.saffronPrimary.withValues(alpha: 0.15),
+                                            foregroundColor: AppTheme.saffronDark,
                                             radius: 22,
                                             child: Text(
                                               customer.name.isNotEmpty ? customer.name[0].toUpperCase() : 'C',
@@ -401,7 +489,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           Row(
                                             children: [
                                               IconButton(
-                                                icon: const Icon(Icons.add_shopping_cart, size: 20, color: AppTheme.primary),
+                                                icon: const Icon(Icons.add_shopping_cart, size: 20, color: AppTheme.saffronPrimary),
                                                 tooltip: 'Add Goods',
                                                 onPressed: () => _openAddGoodsDialog(customer),
                                               ),
@@ -437,15 +525,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
-      selectedColor: AppTheme.primary.withValues(alpha:0.15),
+      selectedColor: AppTheme.saffronPrimary.withValues(alpha: 0.15),
       backgroundColor: AppTheme.surface,
       labelStyle: TextStyle(
-        color: isSelected ? AppTheme.primary : AppTheme.textSecondary,
+        color: isSelected ? AppTheme.saffronDark : AppTheme.textSecondary,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         fontSize: 13,
       ),
       side: BorderSide(
-        color: isSelected ? AppTheme.primary : AppTheme.cardBorder,
+        color: isSelected ? AppTheme.saffronPrimary : AppTheme.cardBorder,
       ),
       onSelected: (selected) {
         if (selected) {

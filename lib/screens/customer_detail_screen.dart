@@ -149,40 +149,65 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                   customer.name,
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
-                Text(
-                  customer.phoneNumber,
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                Row(
+                  children: [
+                    if (customer.phoneNumber.isNotEmpty) ...[
+                      Text(
+                        customer.phoneNumber,
+                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                      ),
+                    ],
+                    if (customer.phoneNumber.isNotEmpty && customer.address.isNotEmpty) ...[
+                      const Text(' • ', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                    ],
+                    if (customer.address.isNotEmpty) ...[
+                      Flexible(
+                        child: Text(
+                          customer.address,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.delete_outline, color: AppTheme.pendingText),
-                tooltip: 'Delete Customer',
+                icon: const Icon(Icons.delete_sweep_outlined, color: AppTheme.pendingText),
+                tooltip: 'Clear Customer Records',
                 onPressed: () async {
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (context) => AlertDialog(
-                      title: const Text('Delete Customer?'),
-                      content: Text('Are you sure you want to delete ${customer.name} and all their records?'),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      title: const Text('Clear Customer Records?'),
+                      content: Text('Are you sure you want to delete all borrowed goods and payment receipts for "${customer.name}"?\n\nThis will reset their pending balance to ₹0.00 while keeping the customer account intact.'),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.of(context).pop(false),
-                          child: const Text('Cancel'),
+                          child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
                         ),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(backgroundColor: AppTheme.pendingText),
                           onPressed: () => Navigator.of(context).pop(true),
-                          child: const Text('Delete'),
+                          child: const Text('Clear Records'),
                         ),
                       ],
                     ),
                   );
 
                   if (confirm == true) {
-                    await widget.repository.deleteCustomer(customer.id);
+                    await widget.repository.clearCustomerRecords(customer.id);
                     if (context.mounted) {
-                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('All transaction records for ${customer.name} have been cleared.'),
+                          backgroundColor: AppTheme.saffronPrimary,
+                        ),
+                      );
                     }
                   }
                 },
@@ -231,20 +256,39 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                               ),
                             ],
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: pendingBalance > 0.001 ? AppTheme.pendingBg : AppTheme.paidBg,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              pendingBalance > 0.001 ? 'DEBT PENDING' : 'ALL CLEAR',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: pendingBalance > 0.001 ? AppTheme.pendingText : AppTheme.paidText,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: pendingBalance > 0.001 ? AppTheme.pendingBg : AppTheme.paidBg,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  pendingBalance > 0.001 ? 'DEBT PENDING' : 'ALL CLEAR',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: pendingBalance > 0.001 ? AppTheme.pendingText : AppTheme.paidText,
+                                  ),
+                                ),
                               ),
-                            ),
+                              if (customer.addedByUserName.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.person_outline, size: 12, color: AppTheme.textMuted),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      'Added by ${customer.addedByUserName}',
+                                      style: const TextStyle(fontSize: 11, color: AppTheme.textMuted, fontWeight: FontWeight.w500),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
                           ),
                         ],
                       ),

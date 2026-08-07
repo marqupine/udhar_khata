@@ -1,16 +1,20 @@
 import 'package:flutter/foundation.dart';
 import '../models/models.dart';
+import 'firestore_service.dart';
 import 'storage_service.dart';
 
 class UdharRepository extends ChangeNotifier {
   final StorageService? _storageService;
+  final FirestoreService? _firestoreService;
 
   final List<Customer> _customers = [];
   final List<GoodItem> _goods = [];
   final List<PaymentRecord> _payments = [];
 
-  UdharRepository([this._storageService]) {
+  UdharRepository([this._storageService, this._firestoreService]) {
     _loadFromStorage();
+    _initFirestoreSync();
+    autoPurgePaidRecordsOlderThan(daysThreshold: 7);
   }
 
   List<Customer> get customers => List.unmodifiable(_customers);
@@ -30,6 +34,37 @@ class UdharRepository extends ChangeNotifier {
     }
   }
 
+  void _initFirestoreSync() {
+    if (_firestoreService == null) return;
+
+    _firestoreService.streamCustomers().listen((remoteCustomers) {
+      if (remoteCustomers.isNotEmpty) {
+        _customers.clear();
+        _customers.addAll(remoteCustomers);
+        _persistAll();
+        notifyListeners();
+      }
+    }, onError: (e) => debugPrint('Customer stream error: $e'));
+
+    _firestoreService.streamGoods().listen((remoteGoods) {
+      if (remoteGoods.isNotEmpty) {
+        _goods.clear();
+        _goods.addAll(remoteGoods);
+        _persistAll();
+        notifyListeners();
+      }
+    }, onError: (e) => debugPrint('Goods stream error: $e'));
+
+    _firestoreService.streamPayments().listen((remotePayments) {
+      if (remotePayments.isNotEmpty) {
+        _payments.clear();
+        _payments.addAll(remotePayments);
+        _persistAll();
+        notifyListeners();
+      }
+    }, onError: (e) => debugPrint('Payments stream error: $e'));
+  }
+
   Future<void> _persistAll() async {
     if (_storageService != null) {
       await _storageService.saveCustomers(_customers);
@@ -40,18 +75,41 @@ class UdharRepository extends ChangeNotifier {
 
   // --- Customer Operations ---
 
+  /// Checks whether customer name is unique (case-insensitive)
+  bool isCustomerNameUnique(String name) {
+    final cleanName = name.trim().toLowerCase();
+    if (cleanName.isEmpty) return false;
+    return !_customers.any((c) => c.name.trim().toLowerCase() == cleanName);
+  }
+
   Future<Customer> addCustomer({
     required String name,
-    required String phoneNumber,
+    String phoneNumber = '',
+    String address = '',
+    String addedByUserId = '',
+    String addedByUserName = '',
   }) async {
+    final trimmedName = name.trim();
+    if (!isCustomerNameUnique(trimmedName)) {
+      throw ArgumentError('A customer with the name "$trimmedName" already exists. Customer names must be unique.');
+    }
+
     final customer = Customer(
       id: 'c_${DateTime.now().microsecondsSinceEpoch}_${_customers.length}',
-      name: name.trim(),
+      name: trimmedName,
       phoneNumber: phoneNumber.trim(),
+      address: address.trim(),
+      addedByUserId: addedByUserId,
+      addedByUserName: addedByUserName,
       createdAt: DateTime.now(),
     );
     _customers.insert(0, customer);
     await _persistAll();
+
+    if (_firestoreService != null) {
+      await _firestoreService.saveCustomer(customer);
+    }
+
     notifyListeners();
     return customer;
   }
@@ -69,6 +127,32 @@ class UdharRepository extends ChangeNotifier {
     _goods.removeWhere((g) => g.customerId == customerId);
     _payments.removeWhere((p) => p.customerId == customerId);
     await _persistAll();
+
+    if (_firestoreService != null) {
+      await _firestoreService.deleteCustomer(customerId);
+    }
+
+    notifyListeners();
+  }
+
+  /// Clears all borrowed goods and payment receipts for a customer without deleting the customer
+  Future<void> clearCustomerRecords(String customerId) async {
+    final goodsToDelete = _goods.where((g) => g.customerId == customerId).toList();
+    final paymentsToDelete = _payments.where((p) => p.customerId == customerId).toList();
+
+    _goods.removeWhere((g) => g.customerId == customerId);
+    _payments.removeWhere((p) => p.customerId == customerId);
+    await _persistAll();
+
+    if (_firestoreService != null) {
+      for (final g in goodsToDelete) {
+        await _firestoreService.deleteGoodItem(g.id);
+      }
+      for (final p in paymentsToDelete) {
+        await _firestoreService.deletePaymentRecord(p.id);
+      }
+    }
+
     notifyListeners();
   }
 
@@ -93,6 +177,11 @@ class UdharRepository extends ChangeNotifier {
     );
     _goods.add(good);
     await _persistAll();
+
+    if (_firestoreService != null) {
+      await _firestoreService.saveGoodItem(good);
+    }
+
     notifyListeners();
     return good;
   }
@@ -140,11 +229,9 @@ class UdharRepository extends ChangeNotifier {
 
   // --- FIFO Settlement Engine ---
 
-  /// Calculates a preview of FIFO settlement without mutating state.
   List<ItemSettlementBreakdown> previewFifoSettlement(String customerId, double paymentAmount) {
     if (paymentAmount <= 0) return [];
 
-    // Get all pending/partially paid goods for customer, sorted oldest first (FIFO)
     final pendingGoods = _goods
         .where((g) => g.customerId == customerId && g.remainingAmount > 0.001)
         .toList();
@@ -180,7 +267,6 @@ class UdharRepository extends ChangeNotifier {
     return breakdown;
   }
 
-  /// Processes payment using FIFO algorithm and updates item balances & records receipt.
   Future<PaymentRecord?> recordPayment({
     required String customerId,
     required double paymentAmount,
@@ -191,13 +277,14 @@ class UdharRepository extends ChangeNotifier {
     final breakdown = previewFifoSettlement(customerId, paymentAmount);
     if (breakdown.isEmpty) return null;
 
-    // Apply settlements to actual goods
+    final List<GoodItem> updatedGoods = [];
     for (final itemBreakdown in breakdown) {
       final index = _goods.indexWhere((g) => g.id == itemBreakdown.itemId);
       if (index != -1) {
         _goods[index] = _goods[index].copyWith(
           amountPaid: itemBreakdown.newAmountPaid,
         );
+        updatedGoods.add(_goods[index]);
       }
     }
 
@@ -212,11 +299,16 @@ class UdharRepository extends ChangeNotifier {
 
     _payments.insert(0, paymentRecord);
     await _persistAll();
+
+    if (_firestoreService != null) {
+      await _firestoreService.savePaymentRecord(paymentRecord);
+      await _firestoreService.saveGoodItemsBatch(updatedGoods);
+    }
+
     notifyListeners();
     return paymentRecord;
   }
 
-  /// Direct manual payment for a single item (e.g. shopkeeper marks an individual good paid directly)
   Future<void> markGoodAsPaid(String goodId) async {
     final index = _goods.indexWhere((g) => g.id == goodId);
     if (index != -1) {
@@ -247,6 +339,12 @@ class UdharRepository extends ChangeNotifier {
 
         _payments.insert(0, paymentRecord);
         await _persistAll();
+
+        if (_firestoreService != null) {
+          await _firestoreService.saveGoodItem(_goods[index]);
+          await _firestoreService.savePaymentRecord(paymentRecord);
+        }
+
         notifyListeners();
       }
     }
@@ -254,5 +352,38 @@ class UdharRepository extends ChangeNotifier {
 
   List<PaymentRecord> getPaymentsForCustomer(String customerId) {
     return _payments.where((p) => p.customerId == customerId).toList();
+  }
+
+  /// Automatically purges paid goods and payment records older than [daysThreshold] (default: 7 days)
+  Future<int> autoPurgePaidRecordsOlderThan({int daysThreshold = 7}) async {
+    final now = DateTime.now();
+
+    final expiredGoods = _goods.where((g) {
+      if (!g.isPaid) return false;
+      return now.difference(g.date).inDays >= daysThreshold;
+    }).toList();
+
+    final expiredPayments = _payments.where((p) {
+      return now.difference(p.date).inDays >= daysThreshold;
+    }).toList();
+
+    if (expiredGoods.isEmpty && expiredPayments.isEmpty) return 0;
+
+    _goods.removeWhere((g) => expiredGoods.contains(g));
+    _payments.removeWhere((p) => expiredPayments.contains(p));
+
+    await _persistAll();
+
+    if (_firestoreService != null) {
+      for (final g in expiredGoods) {
+        await _firestoreService.deleteGoodItem(g.id);
+      }
+      for (final p in expiredPayments) {
+        await _firestoreService.deletePaymentRecord(p.id);
+      }
+    }
+
+    notifyListeners();
+    return expiredGoods.length + expiredPayments.length;
   }
 }
