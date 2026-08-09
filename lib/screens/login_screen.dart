@@ -130,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     child: const Icon(
-                      Icons.account_balance_wallet_rounded,
+                      AppConstants.appIcon,
                       size: 48,
                       color: Colors.white,
                     ),

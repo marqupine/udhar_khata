@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_constants.dart';
 import '../models/models.dart';
 import '../services/auth_service.dart';
@@ -40,7 +41,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _checkPeriodicBiometricPrompt() async {
-    final shouldPrompt = await widget.securityService.shouldPromptBiometricSetup(gapInDays: 10);
+    final shouldPrompt = await widget.securityService
+        .shouldPromptBiometricSetup(gapInDays: 10);
     if (shouldPrompt && mounted) {
       // Record prompt timestamp so user isn't prompted again for another 10-15 days
       await widget.securityService.updateLastBiometricPromptTime();
@@ -48,38 +50,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       showDialog(
         context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Row(
-            children: [
-              Icon(Icons.fingerprint_rounded, color: AppTheme.saffronPrimary, size: 28),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Enable Biometric Lock',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        builder:
+            (ctx) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Row(
+                children: [
+                  Icon(
+                    Icons.fingerprint_rounded,
+                    color: AppTheme.saffronPrimary,
+                    size: 28,
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Enable Biometric Lock',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              content: Text(
+                'Secure your ${AppConstants.appName} data quickly with fingerprint or face recognition. Note: You will need to set up a 4-digit MPIN first if you haven\'t already.',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppTheme.textSecondary,
                 ),
               ),
-            ],
-          ),
-          content: Text(
-            'Secure your ${AppConstants.appName} data quickly with fingerprint or face recognition. Note: You will need to set up a 4-digit MPIN first if you haven\'t already.',
-            style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Not Now', style: TextStyle(color: AppTheme.textMuted)),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text(
+                    'Not Now',
+                    style: TextStyle(color: AppTheme.textMuted),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    SecuritySettingsDialog.show(
+                      context,
+                      widget.securityService,
+                    );
+                  },
+                  child: const Text('SETUP LOCK'),
+                ),
+              ],
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                SecuritySettingsDialog.show(context, widget.securityService);
-              },
-              child: const Text('SETUP LOCK'),
-            ),
-          ],
-        ),
       );
     }
   }
@@ -103,7 +124,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Customer "${customer.name}" created successfully!'),
+              content: Text(
+                'Customer "${customer.name}" created successfully!',
+              ),
               backgroundColor: AppTheme.saffronPrimary,
             ),
           );
@@ -112,7 +135,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(e.toString().replaceAll('ArgumentError: ', '').replaceAll('Exception: ', '')),
+              content: Text(
+                e
+                    .toString()
+                    .replaceAll('ArgumentError: ', '')
+                    .replaceAll('Exception: ', ''),
+              ),
               backgroundColor: AppTheme.pendingText,
             ),
           );
@@ -160,10 +188,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => RecordPaymentDialog(
-        customer: customer,
-        repository: widget.repository,
-      ),
+      builder:
+          (context) => RecordPaymentDialog(
+            customer: customer,
+            repository: widget.repository,
+          ),
     );
 
     if (result != null) {
@@ -176,7 +205,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (payment != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Payment of ₹${result['amount']} recorded with FIFO settlement!'),
+            content: Text(
+              'Payment of ₹${result['amount']} recorded with FIFO settlement!',
+            ),
             backgroundColor: AppTheme.paidText,
           ),
         );
@@ -195,44 +226,123 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final activeBorrowers = widget.repository.activeBorrowersCount;
 
         // Filtering
-        final filteredCustomers = allCustomers.where((c) {
-          final matchesSearch = c.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-              c.phoneNumber.contains(_searchQuery);
-          if (!matchesSearch) return false;
+        final filteredCustomers =
+            allCustomers.where((c) {
+              final matchesSearch =
+                  c.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                  c.phoneNumber.contains(_searchQuery);
+              if (!matchesSearch) return false;
 
-          final pending = widget.repository.getCustomerPendingBalance(c.id);
-          if (_activeFilter == 'Owed') {
-            return pending > 0.001;
-          } else if (_activeFilter == 'Settled') {
-            return pending <= 0.001;
-          }
-          return true;
-        }).toList();
+              final pending = widget.repository.getCustomerPendingBalance(c.id);
+              if (_activeFilter == 'Owed') {
+                return pending > 0.001;
+              } else if (_activeFilter == 'Settled') {
+                return pending <= 0.001;
+              }
+              return true;
+            }).toList();
 
         return Scaffold(
           appBar: AppBar(
-            title: const Row(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            toolbarHeight: 64,
+            titleSpacing: 16,
+            title: Row(
               children: [
-                Icon(Icons.account_balance_wallet_rounded, color: AppTheme.saffronPrimary, size: 26),
-                SizedBox(width: 10),
-                Text(
-                  AppConstants.appName,
-                  style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                // Premium Wallet Brand Icon Badge
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.primaryGradient,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.saffronPrimary.withValues(alpha: 0.35),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    AppConstants.appIcon,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Full Store Name Branding
+                Expanded(
+                  child: Text(
+                    AppConstants.appName,
+                    style: GoogleFonts.outfit(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                      letterSpacing: -0.2,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.shield_outlined, color: AppTheme.saffronDark),
-                tooltip: 'Security Settings',
-                onPressed: () => SecuritySettingsDialog.show(context, widget.securityService),
+              // Security Shield Action Button Badge
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: AppTheme.saffronPrimary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppTheme.saffronPrimary.withValues(alpha: 0.22),
+                  ),
+                ),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.shield_outlined,
+                    color: AppTheme.saffronDark,
+                    size: 20,
+                  ),
+                  tooltip: 'Security Settings',
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
+                  ),
+                  padding: EdgeInsets.zero,
+                  onPressed:
+                      () => SecuritySettingsDialog.show(
+                        context,
+                        widget.securityService,
+                      ),
+                ),
               ),
-              IconButton(
-                icon: const Icon(Icons.logout_rounded, color: AppTheme.textSecondary),
-                tooltip: 'Sign Out',
-                onPressed: () async {
-                  await widget.authService.signOut();
-                },
+              // Sign Out Action Button Badge
+              Container(
+                margin: const EdgeInsets.only(right: 16),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.15)),
+                ),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.logout_rounded,
+                    color: Colors.redAccent,
+                    size: 20,
+                  ),
+                  tooltip: 'Sign Out',
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
+                  ),
+                  padding: EdgeInsets.zero,
+                  onPressed: () async {
+                    await widget.authService.signOut();
+                  },
+                ),
               ),
             ],
           ),
@@ -249,6 +359,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
+                      // Logged in User Greeting Banner (Seamless integrated header)
+                      AnimatedGreetingHeader(
+                        userName: widget.authService.currentUserName,
+                      ),
                       // Grand Pending Balance Hero Card
                       Container(
                         width: double.infinity,
@@ -258,7 +372,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           borderRadius: BorderRadius.circular(22),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.saffronPrimary.withValues(alpha: 0.3),
+                              color: AppTheme.saffronPrimary.withValues(
+                                alpha: 0.3,
+                              ),
                               blurRadius: 14,
                               offset: const Offset(0, 6),
                             ),
@@ -279,7 +395,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.black.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(20),
@@ -308,7 +427,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const SizedBox(height: 12),
                             Row(
                               children: [
-                                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 16),
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
                                 const SizedBox(width: 6),
                                 Text(
                                   'Total Collected So Far: ₹${grandSettled.toStringAsFixed(2)}',
@@ -329,13 +452,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       TextField(
                         decoration: InputDecoration(
                           hintText: 'Search customer by name or phone...',
-                          prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.saffronPrimary),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear_rounded, color: AppTheme.textSecondary),
-                                  onPressed: () => setState(() => _searchQuery = ''),
-                                )
-                              : null,
+                          prefixIcon: const Icon(
+                            Icons.search_rounded,
+                            color: AppTheme.saffronPrimary,
+                          ),
+                          suffixIcon:
+                              _searchQuery.isNotEmpty
+                                  ? IconButton(
+                                    icon: const Icon(
+                                      Icons.clear_rounded,
+                                      color: AppTheme.textSecondary,
+                                    ),
+                                    onPressed:
+                                        () => setState(() => _searchQuery = ''),
+                                  )
+                                  : null,
                         ),
                         onChanged: (val) => setState(() => _searchQuery = val),
                       ),
@@ -344,7 +475,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       // Filter chips
                       Row(
                         children: [
-                          _buildFilterChip('All', 'All (${allCustomers.length})'),
+                          _buildFilterChip(
+                            'All',
+                            'All (${allCustomers.length})',
+                          ),
                           const SizedBox(width: 8),
                           _buildFilterChip('Owed', 'Has Debt'),
                           const SizedBox(width: 8),
@@ -359,160 +493,216 @@ class _DashboardScreenState extends State<DashboardScreen> {
               // Customer List
               filteredCustomers.isEmpty
                   ? SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              _searchQuery.isNotEmpty ? Icons.search_off_rounded : Icons.people_outline_rounded,
-                              size: 54,
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _searchQuery.isNotEmpty
+                                ? Icons.search_off_rounded
+                                : Icons.people_outline_rounded,
+                            size: 54,
+                            color: AppTheme.textMuted,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _searchQuery.isNotEmpty
+                                ? 'No customers match "$_searchQuery"'
+                                : 'No customers recorded yet.',
+                            style: const TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Tap "+ Add Customer" to create your first entry.',
+                            style: TextStyle(
                               color: AppTheme.textMuted,
+                              fontSize: 13,
                             ),
-                            const SizedBox(height: 12),
-                            Text(
-                              _searchQuery.isNotEmpty
-                                  ? 'No customers match "$_searchQuery"'
-                                  : 'No customers recorded yet.',
-                              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 16),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Tap "+ Add Customer" to create your first entry.',
-                              style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    )
+                    ),
+                  )
                   : SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final customer = filteredCustomers[index];
-                            final pending = widget.repository.getCustomerPendingBalance(customer.id);
-                            final totalBorrowed = widget.repository.getCustomerTotalBorrowed(customer.id);
-                            final hasDebt = pending > 0.001;
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 8.0,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final customer = filteredCustomers[index];
+                        final pending = widget.repository
+                            .getCustomerPendingBalance(customer.id);
+                        final totalBorrowed = widget.repository
+                            .getCustomerTotalBorrowed(customer.id);
+                        final hasDebt = pending > 0.001;
 
-                            return Card(
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(18),
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => CustomerDetailScreen(
+                        return Card(
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(18),
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => CustomerDetailScreen(
                                         customerId: customer.id,
                                         repository: widget.repository,
                                       ),
-                                    ),
-                                  );
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                children: [
+                                  Row(
                                     children: [
-                                      Row(
-                                        children: [
-                                          CircleAvatar(
-                                            backgroundColor: AppTheme.saffronPrimary.withValues(alpha: 0.15),
-                                            foregroundColor: AppTheme.saffronDark,
-                                            radius: 22,
-                                            child: Text(
-                                              customer.name.isNotEmpty ? customer.name[0].toUpperCase() : 'C',
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                                            ),
+                                      CircleAvatar(
+                                        backgroundColor: AppTheme.saffronPrimary
+                                            .withValues(alpha: 0.15),
+                                        foregroundColor: AppTheme.saffronDark,
+                                        radius: 22,
+                                        child: Text(
+                                          customer.name.isNotEmpty
+                                              ? customer.name[0].toUpperCase()
+                                              : 'C',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
                                           ),
-                                          const SizedBox(width: 14),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  customer.name,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 16,
-                                                    color: AppTheme.textPrimary,
-                                                  ),
-                                                ),
-                                                Text(
-                                                  customer.phoneNumber,
-                                                  style: const TextStyle(
-                                                    fontSize: 13,
-                                                    color: AppTheme.textSecondary,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.end,
-                                            children: [
-                                              Text(
-                                                '₹${pending.toStringAsFixed(2)}',
-                                                style: TextStyle(
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: hasDebt ? AppTheme.pendingText : AppTheme.paidText,
-                                                ),
-                                              ),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: hasDebt ? AppTheme.pendingBg : AppTheme.paidBg,
-                                                  borderRadius: BorderRadius.circular(6),
-                                                ),
-                                                child: Text(
-                                                  hasDebt ? 'PENDING' : 'CLEARED',
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: hasDebt ? AppTheme.pendingText : AppTheme.paidText,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
+                                        ),
                                       ),
-                                      const SizedBox(height: 12),
-                                      const Divider(height: 1, color: AppTheme.cardBorder),
-                                      const SizedBox(height: 10),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              customer.name,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                                color: AppTheme.textPrimary,
+                                              ),
+                                            ),
+                                            Text(
+                                              customer.phoneNumber,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                color: AppTheme.textSecondary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
                                         children: [
                                           Text(
-                                            'Total Items Borrowed: ₹${totalBorrowed.toStringAsFixed(2)}',
-                                            style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                                            '₹${pending.toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color:
+                                                  hasDebt
+                                                      ? AppTheme.pendingText
+                                                      : AppTheme.paidText,
+                                            ),
                                           ),
-                                          Row(
-                                            children: [
-                                              IconButton(
-                                                icon: const Icon(Icons.add_shopping_cart, size: 20, color: AppTheme.saffronPrimary),
-                                                tooltip: 'Add Goods',
-                                                onPressed: () => _openAddGoodsDialog(customer),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  hasDebt
+                                                      ? AppTheme.pendingBg
+                                                      : AppTheme.paidBg,
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              hasDebt ? 'PENDING' : 'CLEARED',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color:
+                                                    hasDebt
+                                                        ? AppTheme.pendingText
+                                                        : AppTheme.paidText,
                                               ),
-                                              IconButton(
-                                                icon: const Icon(Icons.payment, size: 20, color: AppTheme.paidText),
-                                                tooltip: 'Record Payment',
-                                                onPressed: () => _openRecordPaymentDialog(customer),
-                                              ),
-                                              const Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted),
-                                            ],
+                                            ),
                                           ),
                                         ],
                                       ),
                                     ],
                                   ),
-                                ),
+                                  const SizedBox(height: 12),
+                                  const Divider(
+                                    height: 1,
+                                    color: AppTheme.cardBorder,
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Total Items Borrowed: ₹${totalBorrowed.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppTheme.textMuted,
+                                        ),
+                                      ),
+                                      Row(
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.add_shopping_cart,
+                                              size: 20,
+                                              color: AppTheme.saffronPrimary,
+                                            ),
+                                            tooltip: 'Add Goods',
+                                            onPressed:
+                                                () => _openAddGoodsDialog(
+                                                  customer,
+                                                ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.payment,
+                                              size: 20,
+                                              color: AppTheme.paidText,
+                                            ),
+                                            tooltip: 'Record Payment',
+                                            onPressed:
+                                                () => _openRecordPaymentDialog(
+                                                  customer,
+                                                ),
+                                          ),
+                                          const Icon(
+                                            Icons.chevron_right_rounded,
+                                            color: AppTheme.textMuted,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                            );
-                          },
-                          childCount: filteredCustomers.length,
-                        ),
-                      ),
+                            ),
+                          ),
+                        );
+                      }, childCount: filteredCustomers.length),
                     ),
+                  ),
             ],
           ),
         );
@@ -542,6 +732,137 @@ class _DashboardScreenState extends State<DashboardScreen> {
           });
         }
       },
+    );
+  }
+}
+
+class AnimatedGreetingHeader extends StatefulWidget {
+  final String userName;
+
+  const AnimatedGreetingHeader({super.key, required this.userName});
+
+  @override
+  State<AnimatedGreetingHeader> createState() => _AnimatedGreetingHeaderState();
+}
+
+class _AnimatedGreetingHeaderState extends State<AnimatedGreetingHeader>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _rotationAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat(reverse: true);
+
+    _scaleAnimation = Tween<double>(begin: 0.88, end: 1.15).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
+    );
+
+    _rotationAnimation = Tween<double>(begin: -0.06, end: 0.06).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  String _getGreetingText() {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) {
+      return 'Good Morning,';
+    } else if (hour >= 12 && hour < 17) {
+      return 'Good Afternoon,';
+    } else if (hour >= 17 && hour < 22) {
+      return 'Good Evening,';
+    } else {
+      return 'Good Night,';
+    }
+  }
+
+  IconData _getGreetingIcon() {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) {
+      return Icons.wb_sunny_rounded;
+    } else if (hour >= 12 && hour < 17) {
+      return Icons.wb_cloudy_rounded;
+    } else if (hour >= 17 && hour < 22) {
+      return Icons.nights_stay_rounded;
+    } else {
+      return Icons.dark_mode_rounded;
+    }
+  }
+
+  Color _getGreetingColor() {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) {
+      return const Color(0xFFFF8F00); // Morning Sun Gold
+    } else if (hour >= 12 && hour < 17) {
+      return const Color(0xFFE65100); // Afternoon Warm Orange
+    } else if (hour >= 17 && hour < 22) {
+      return const Color(0xFF5C6BC0); // Evening Indigo
+    } else {
+      return const Color(0xFF7E57C2); // Night Purple
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final greetingText = _getGreetingText();
+    final greetingIcon = _getGreetingIcon();
+    final iconColor = _getGreetingColor();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0, left: 4.0, right: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '$greetingText ',
+                        style: GoogleFonts.dancingScript(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.saffronDark,
+                        ),
+                      ),
+                      TextSpan(
+                        text: widget.userName,
+                        style: GoogleFonts.dancingScript(
+                          fontSize: 27,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                RotationTransition(
+                  turns: _rotationAnimation,
+                  child: ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: Icon(greetingIcon, color: iconColor, size: 24),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
