@@ -148,7 +148,7 @@ class _AddGoodsDialogState extends State<AddGoodsDialog>
   Future<void> _saveAndAddNext() async {
     final data = _getFormData();
     if (data == null) {
-      // Invalid form -> bounce drag back
+      // Invalid form -> bounce drag back smoothly
       setState(() {
         _dragDx = 0.0;
       });
@@ -166,15 +166,15 @@ class _AddGoodsDialogState extends State<AddGoodsDialog>
 
     if (!mounted) return;
 
-    // Animate card swipe out left
+    // Animate card swipe out smoothly to the left
     setState(() {
-      _dragDx = -400.0;
+      _dragDx = -450.0;
     });
-    await Future.delayed(const Duration(milliseconds: 180));
+    await Future.delayed(const Duration(milliseconds: 240));
 
     if (!mounted) return;
 
-    // Reset form fields
+    // Reset form fields for fresh input
     _nameController.clear();
     _quantityController.text = '1';
     _priceController.clear();
@@ -182,12 +182,12 @@ class _AddGoodsDialogState extends State<AddGoodsDialog>
     setState(() {
       _sessionSavedCount++;
       _lastSavedName = data['name'];
-      _dragDx = 300.0; // Position off-screen right for spring-in
+      _dragDx = 380.0; // Position off-screen right for spring entry
       _isSaving = false;
     });
 
-    // Spring card back into center
-    await Future.delayed(const Duration(milliseconds: 30));
+    // Spring fresh card back into center
+    await Future.delayed(const Duration(milliseconds: 40));
     if (mounted) {
       setState(() {
         _dragDx = 0.0;
@@ -197,7 +197,6 @@ class _AddGoodsDialogState extends State<AddGoodsDialog>
   }
 
   void _submitFinal() async {
-    // If form has text filled, save it first
     final hasText = _nameController.text.trim().isNotEmpty ||
         _priceController.text.trim().isNotEmpty;
 
@@ -225,7 +224,10 @@ class _AddGoodsDialogState extends State<AddGoodsDialog>
   @override
   Widget build(BuildContext context) {
     final isEditMode = widget.existingItem != null;
-    final isSwipingLeft = _dragDx < -20;
+
+    // Smooth continuous swipe progress (0.0 to 1.0)
+    final swipeProgress = (-_dragDx / 110.0).clamp(0.0, 1.0);
+    final overlayOpacity = (swipeProgress * 0.94).clamp(0.0, 0.94);
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
@@ -236,12 +238,12 @@ class _AddGoodsDialogState extends State<AddGoodsDialog>
           if (isEditMode || _isSaving) return;
           setState(() {
             _dragDx += details.delta.dx;
-            if (_dragDx > 25) _dragDx = 25; // Rubberband right
+            if (_dragDx > 20) _dragDx = 20; // Rubberband right
           });
         },
         onHorizontalDragEnd: (details) {
           if (isEditMode || _isSaving) return;
-          if (_dragDx < -75 || details.velocity.pixelsPerSecond.dx < -250) {
+          if (_dragDx < -80 || details.velocity.pixelsPerSecond.dx < -250) {
             _saveAndAddNext();
           } else {
             setState(() {
@@ -250,29 +252,33 @@ class _AddGoodsDialogState extends State<AddGoodsDialog>
           }
         },
         child: AnimatedContainer(
-          duration: _dragDx == 0.0 || _dragDx == -400.0 || _dragDx == 300.0
-              ? const Duration(milliseconds: 220)
+          duration: _dragDx == 0.0 || _dragDx == -450.0 || _dragDx == 380.0
+              ? const Duration(milliseconds: 260)
               : Duration.zero,
           curve: Curves.easeOutCubic,
           transform: Matrix4.translationValues(_dragDx, 0, 0)
-            ..rotateZ(_dragDx * 0.0004),
+            ..rotateZ(_dragDx * 0.0003),
           child: Container(
             decoration: BoxDecoration(
               color: AppTheme.surface,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: isSwipingLeft
-                    ? AppTheme.saffronPrimary
-                    : AppTheme.cardBorder,
-                width: isSwipingLeft ? 2.0 : 1.0,
+                color: Color.lerp(
+                  AppTheme.cardBorder,
+                  AppTheme.saffronPrimary,
+                  swipeProgress,
+                )!,
+                width: 1.0 + (swipeProgress * 1.2),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: isSwipingLeft
-                      ? AppTheme.saffronPrimary.withValues(alpha: 0.35)
-                      : Colors.black.withValues(alpha: 0.15),
-                  blurRadius: isSwipingLeft ? 20 : 12,
-                  spreadRadius: isSwipingLeft ? 2 : 0,
+                  color: Color.lerp(
+                    Colors.black.withValues(alpha: 0.12),
+                    AppTheme.saffronPrimary.withValues(alpha: 0.38),
+                    swipeProgress,
+                  )!,
+                  blurRadius: 12 + (swipeProgress * 12),
+                  spreadRadius: swipeProgress * 2,
                   offset: const Offset(0, 6),
                 ),
               ],
@@ -301,7 +307,9 @@ class _AddGoodsDialogState extends State<AddGoodsDialog>
                               decoration: BoxDecoration(
                                 color: AppTheme.paidBg,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppTheme.paidText.withValues(alpha: 0.3)),
+                                border: Border.all(
+                                  color: AppTheme.paidText.withValues(alpha: 0.3),
+                                ),
                               ),
                               child: Row(
                                 children: [
@@ -313,7 +321,7 @@ class _AddGoodsDialogState extends State<AddGoodsDialog>
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      'Saved "$_lastSavedName"! ($_sessionSavedCount item${_sessionSavedCount > 1 ? 's' : ''} added in session)',
+                                      'Saved "$_lastSavedName"! ($_sessionSavedCount item${_sessionSavedCount > 1 ? 's' : ''} added)',
                                       style: const TextStyle(
                                         color: AppTheme.paidText,
                                         fontWeight: FontWeight.bold,
@@ -620,35 +628,22 @@ class _AddGoodsDialogState extends State<AddGoodsDialog>
                           ),
                           const SizedBox(height: 24),
 
-                          // Action Buttons
+                          // Clean Action Buttons Row: [Cancel] & [Save & Done]
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               TextButton(
                                 onPressed: () {
-                                  Navigator.of(context).pop(_sessionSavedCount > 0 ? true : null);
+                                  Navigator.of(context).pop(
+                                    _sessionSavedCount > 0 ? true : null,
+                                  );
                                 },
                                 style: TextButton.styleFrom(
                                   foregroundColor: AppTheme.textSecondary,
                                 ),
-                                child: Text(_sessionSavedCount > 0 ? 'Done' : 'Cancel'),
+                                child: const Text('Cancel'),
                               ),
-                              const Spacer(),
-                              if (!isEditMode) ...[
-                                OutlinedButton.icon(
-                                  onPressed: _saveAndAddNext,
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: AppTheme.saffronDark,
-                                    side: const BorderSide(color: AppTheme.saffronPrimary),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 10,
-                                    ),
-                                  ),
-                                  icon: const Icon(Icons.swipe_left_rounded, size: 18),
-                                  label: const Text('Add Next 👈', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                                ),
-                                const SizedBox(width: 8),
-                              ],
+                              const SizedBox(width: 12),
                               ElevatedButton(
                                 onPressed: _submitFinal,
                                 child: Text(
@@ -669,34 +664,40 @@ class _AddGoodsDialogState extends State<AddGoodsDialog>
                   ),
                 ),
 
-                // Tinder Swipe Overlay Tag
-                if (isSwipingLeft)
+                // Smooth Gradual Tinder Swipe Overlay Tag
+                if (overlayOpacity > 0.001)
                   Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppTheme.saffronPrimary.withValues(alpha: 0.92),
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.swipe_left_rounded,
-                              color: Colors.white,
-                              size: 56,
+                    child: Opacity(
+                      opacity: overlayOpacity,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppTheme.saffronPrimary,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Center(
+                          child: Transform.scale(
+                            scale: (0.7 + (swipeProgress * 0.3)).clamp(0.7, 1.0),
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.swipe_left_rounded,
+                                  color: Colors.white,
+                                  size: 56,
+                                ),
+                                SizedBox(height: 12),
+                                Text(
+                                  'RELEASE TO SAVE & ADD NEXT 👈',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              ],
                             ),
-                            SizedBox(height: 12),
-                            Text(
-                              'RELEASE TO SAVE & ADD NEXT 👈',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.0,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
