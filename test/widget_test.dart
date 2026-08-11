@@ -242,7 +242,7 @@ void main() {
     expect(repository.getRecycleBinGoods(customer.id).length, 0);
   });
 
-  testWidgets('CustomerReportDialog displays report details and net due item breakdown', (WidgetTester tester) async {
+  testWidgets('CustomerReportDialog displays report details and item breakdown', (WidgetTester tester) async {
     final repository = UdharRepository();
     final customer = await repository.addCustomer(
       name: 'Report Test Customer',
@@ -250,25 +250,14 @@ void main() {
       address: 'Test City',
     );
 
-    // Unpaid due item
     await repository.addGoodItem(
       customerId: customer.id,
-      name: 'Sample Rice Due',
+      name: 'Sample Rice',
       category: 'Grocery',
       quantity: 2,
       unitPrice: 50,
       date: DateTime(2026, 8, 11, 23, 44),
     );
-
-    // Paid item (should be filtered out)
-    final paidItem = await repository.addGoodItem(
-      customerId: customer.id,
-      name: 'Sample Paid Chips',
-      category: 'Snacks',
-      quantity: 1,
-      unitPrice: 20,
-    );
-    await repository.markGoodAsPaid(paidItem.id);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -290,10 +279,9 @@ void main() {
     await tester.tap(find.text('Open Report'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Pending Dues Report'), findsOneWidget);
+    expect(find.text('Supermart Thermal Bill'), findsOneWidget);
     expect(find.text('Report Test Customer'), findsOneWidget);
-    expect(find.text('Sample Rice Due'), findsOneWidget);
-    expect(find.text('Sample Paid Chips'), findsNothing);
-    expect(find.text('Copy Text for WhatsApp'), findsOneWidget);
+    expect(find.text('1. Sample Rice'), findsOneWidget);
+    expect(find.text('Send Reminder on WhatsApp'), findsOneWidget);
   });
 }
