@@ -156,6 +156,17 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
     }
   }
 
+  String _formatDateTime(DateTime date) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final day = date.day.toString().padLeft(2, '0');
+    final month = months[date.month - 1];
+    final year = date.year;
+    final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
+    final minute = date.minute.toString().padLeft(2, '0');
+    final period = date.hour >= 12 ? 'PM' : 'AM';
+    return '$day $month $year, $hour:$minute $period';
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -533,6 +544,21 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                                                     color: AppTheme.textSecondary,
                                                   ),
                                                 ),
+                                                const SizedBox(height: 3),
+                                                Row(
+                                                  children: [
+                                                    const Icon(Icons.access_time_rounded, size: 12, color: AppTheme.textMuted),
+                                                    const SizedBox(width: 3),
+                                                    Text(
+                                                      'Borrowed: ${_formatDateTime(item.date)}',
+                                                      style: const TextStyle(
+                                                        fontSize: 11,
+                                                        color: AppTheme.textMuted,
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
                                               ],
                                             ),
                                           ),
@@ -694,7 +720,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                                     ),
                                   ),
                                   subtitle: Text(
-                                    '${receipt.date.day}/${receipt.date.month}/${receipt.date.year} ${receipt.date.hour}:${receipt.date.minute.toString().padLeft(2, '0')}'
+                                    '${_formatDateTime(receipt.date)}'
                                     '${receipt.note.isNotEmpty ? ' • ${receipt.note}' : ''}',
                                     style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                                   ),
