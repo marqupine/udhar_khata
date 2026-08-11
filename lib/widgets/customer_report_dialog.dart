@@ -109,13 +109,15 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
           'Hello ${widget.customer.name}, here is your ${AppConstants.appName} account statement receipt.\nNet Due Balance: ₹${pendingBalance.toStringAsFixed(2)}.\nBest wishes!';
 
       // 1. Trigger system share (shares PNG image with caption)
-      final shareResult = await Share.shareXFiles(
-        [XFile(filePath)],
-        text: messageText,
-        subject: '${AppConstants.appName} Statement - ${widget.customer.name}',
-      );
-
-      debugPrint('Share result status: ${shareResult.status}');
+      try {
+        await Share.shareXFiles(
+          [XFile(filePath)],
+          text: messageText,
+          subject: '${AppConstants.appName} Statement - ${widget.customer.name}',
+        );
+      } catch (shareErr) {
+        debugPrint('System share plugin exception (hot reload pending rebuild): $shareErr');
+      }
 
       // 2. Direct WhatsApp launcher fallback if phone number is present
       String cleanPhone = widget.customer.phoneNumber.replaceAll(RegExp(r'\D'), '');
@@ -129,6 +131,14 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
         );
         if (await canLaunchUrl(waUrl)) {
           await launchUrl(waUrl, mode: LaunchMode.externalApplication);
+        } else {
+          // Fallback to whatsapp:// protocol if wa.me fails
+          final waAppUrl = Uri.parse(
+            'whatsapp://send?phone=$cleanPhone&text=${Uri.encodeComponent(messageText)}',
+          );
+          if (await canLaunchUrl(waAppUrl)) {
+            await launchUrl(waAppUrl, mode: LaunchMode.externalApplication);
+          }
         }
       }
 
