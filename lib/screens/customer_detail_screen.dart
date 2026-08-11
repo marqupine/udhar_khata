@@ -22,7 +22,8 @@ class CustomerDetailScreen extends StatefulWidget {
   State<CustomerDetailScreen> createState() => _CustomerDetailScreenState();
 }
 
-class _CustomerDetailScreenState extends State<CustomerDetailScreen> with SingleTickerProviderStateMixin {
+class _CustomerDetailScreenState extends State<CustomerDetailScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   GoodsFilter _goodsFilter = GoodsFilter.defaultFilter;
   DateTimeRange? _selectedDateRange;
@@ -49,17 +50,23 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
             _selectedDateRange!.start.year,
             _selectedDateRange!.start.month,
             _selectedDateRange!.start.day,
-            0, 0, 0,
+            0,
+            0,
+            0,
           );
           final end = DateTime(
             _selectedDateRange!.end.year,
             _selectedDateRange!.end.month,
             _selectedDateRange!.end.day,
-            23, 59, 59, 999,
+            23,
+            59,
+            59,
+            999,
           );
-          list = allGoods
-              .where((g) => !g.date.isBefore(start) && !g.date.isAfter(end))
-              .toList();
+          list =
+              allGoods
+                  .where((g) => !g.date.isBefore(start) && !g.date.isAfter(end))
+                  .toList();
         } else {
           list = List.from(allGoods);
         }
@@ -81,13 +88,17 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
     super.dispose();
   }
 
-  void _openAddGoodsDialog(Customer customer, {bool isLegacyMode = false}) async {
+  void _openAddGoodsDialog(
+    Customer customer, {
+    bool isLegacyMode = false,
+  }) async {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => AddGoodsDialog(
-        customerName: customer.name,
-        isLegacyMode: isLegacyMode,
-      ),
+      builder:
+          (context) => AddGoodsDialog(
+            customerName: customer.name,
+            isLegacyMode: isLegacyMode,
+          ),
     );
 
     if (result != null) {
@@ -117,10 +128,9 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
   void _openEditGoodsDialog(Customer customer, GoodItem item) async {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => AddGoodsDialog(
-        customerName: customer.name,
-        existingItem: item,
-      ),
+      builder:
+          (context) =>
+              AddGoodsDialog(customerName: customer.name, existingItem: item),
     );
 
     if (result != null) {
@@ -157,10 +167,11 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => RecordPaymentDialog(
-        customer: customer,
-        repository: widget.repository,
-      ),
+      builder:
+          (context) => RecordPaymentDialog(
+            customer: customer,
+            repository: widget.repository,
+          ),
     );
 
     if (result != null) {
@@ -203,7 +214,20 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
   }
 
   String _formatDateTime(DateTime date) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final day = date.day.toString().padLeft(2, '0');
     final month = months[date.month - 1];
     final year = date.year;
@@ -227,9 +251,13 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
           );
         }
 
-        final totalBorrowed = widget.repository.getCustomerTotalBorrowed(customer.id);
+        final totalBorrowed = widget.repository.getCustomerTotalBorrowed(
+          customer.id,
+        );
         final totalPaid = widget.repository.getCustomerTotalPaid(customer.id);
-        final pendingBalance = widget.repository.getCustomerPendingBalance(customer.id);
+        final pendingBalance = widget.repository.getCustomerPendingBalance(
+          customer.id,
+        );
 
         final goods = widget.repository.getGoodsForCustomer(customer.id);
         final filteredGoods = _getFilteredGoods(goods);
@@ -242,18 +270,31 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
               children: [
                 Text(
                   customer.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
                 Row(
                   children: [
                     if (customer.phoneNumber.isNotEmpty) ...[
                       Text(
                         customer.phoneNumber,
-                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
+                        ),
                       ),
                     ],
-                    if (customer.phoneNumber.isNotEmpty && customer.address.isNotEmpty) ...[
-                      const Text(' • ', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                    if (customer.phoneNumber.isNotEmpty &&
+                        customer.address.isNotEmpty) ...[
+                      const Text(
+                        ' • ',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textMuted,
+                        ),
+                      ),
                     ],
                     if (customer.address.isNotEmpty) ...[
                       Flexible(
@@ -261,7 +302,10 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                           customer.address,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textSecondary,
+                          ),
                         ),
                       ),
                     ],
@@ -271,39 +315,40 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
             ),
             actions: [
               IconButton(
-                icon: Icon(
-                  _isHeaderCollapsed ? Icons.fullscreen_exit : Icons.fullscreen,
-                  color: AppTheme.saffronPrimary,
+                icon: const Icon(
+                  Icons.delete_sweep_outlined,
+                  color: AppTheme.pendingText,
                 ),
-                tooltip: _isHeaderCollapsed ? 'Show Summary Header' : 'Full Screen List View',
-                onPressed: () {
-                  setState(() {
-                    _isHeaderCollapsed = !_isHeaderCollapsed;
-                  });
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_sweep_outlined, color: AppTheme.pendingText),
                 tooltip: 'Clear Customer Records',
                 onPressed: () async {
                   final confirm = await showDialog<bool>(
                     context: context,
-                    builder: (context) => AlertDialog(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      title: const Text('Clear Customer Records?'),
-                      content: Text('Are you sure you want to delete all borrowed goods and payment receipts for "${customer.name}"?\n\nThis will reset their pending balance to ₹0.00 while keeping the customer account intact.'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(false),
-                          child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+                    builder:
+                        (context) => AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          title: const Text('Clear Customer Records?'),
+                          content: Text(
+                            'Are you sure you want to delete all borrowed goods and payment receipts for "${customer.name}"?\n\nThis will reset their pending balance to ₹0.00 while keeping the customer account intact.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(color: AppTheme.textSecondary),
+                              ),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.pendingText,
+                              ),
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: const Text('Clear Records'),
+                            ),
+                          ],
                         ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.pendingText),
-                          onPressed: () => Navigator.of(context).pop(true),
-                          child: const Text('Clear Records'),
-                        ),
-                      ],
-                    ),
                   );
 
                   if (confirm == true) {
@@ -311,7 +356,9 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('All transaction records for ${customer.name} have been cleared.'),
+                          content: Text(
+                            'All transaction records for ${customer.name} have been cleared.',
+                          ),
                           backgroundColor: AppTheme.saffronPrimary,
                         ),
                       );
@@ -326,9 +373,10 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
               // Summary Financial Header (Collapsible for Full Screen View)
               AnimatedCrossFade(
                 duration: const Duration(milliseconds: 250),
-                crossFadeState: _isHeaderCollapsed
-                    ? CrossFadeState.showSecond
-                    : CrossFadeState.showFirst,
+                crossFadeState:
+                    _isHeaderCollapsed
+                        ? CrossFadeState.showSecond
+                        : CrossFadeState.showFirst,
                 firstChild: Padding(
                   padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 4.0),
                   child: Container(
@@ -356,7 +404,10 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                               children: [
                                 const Text(
                                   'Pending Balance',
-                                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.textSecondary,
+                                  ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
@@ -364,7 +415,10 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                                   style: TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
-                                    color: pendingBalance > 0.001 ? AppTheme.pendingText : AppTheme.paidText,
+                                    color:
+                                        pendingBalance > 0.001
+                                            ? AppTheme.pendingText
+                                            : AppTheme.paidText,
                                   ),
                                 ),
                               ],
@@ -373,17 +427,28 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: pendingBalance > 0.001 ? AppTheme.pendingBg : AppTheme.paidBg,
+                                    color:
+                                        pendingBalance > 0.001
+                                            ? AppTheme.pendingBg
+                                            : AppTheme.paidBg,
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Text(
-                                    pendingBalance > 0.001 ? 'DEBT PENDING' : 'ALL CLEAR',
+                                    pendingBalance > 0.001
+                                        ? 'DEBT PENDING'
+                                        : 'ALL CLEAR',
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
-                                      color: pendingBalance > 0.001 ? AppTheme.pendingText : AppTheme.paidText,
+                                      color:
+                                          pendingBalance > 0.001
+                                              ? AppTheme.pendingText
+                                              : AppTheme.paidText,
                                     ),
                                   ),
                                 ),
@@ -391,7 +456,11 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                                   const SizedBox(height: 4),
                                   Text(
                                     'Added by ${customer.addedByUserName}',
-                                    style: const TextStyle(fontSize: 10, color: AppTheme.textMuted, fontWeight: FontWeight.w500),
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: AppTheme.textMuted,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ],
                               ],
@@ -408,24 +477,48 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                             Expanded(
                               child: Row(
                                 children: [
-                                  const Text('Borrowed: ', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                                  const Text(
+                                    'Borrowed: ',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppTheme.textMuted,
+                                    ),
+                                  ),
                                   Text(
                                     '₹${totalBorrowed.toStringAsFixed(2)}',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: AppTheme.textPrimary,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                            Container(width: 1, height: 16, color: AppTheme.cardBorder),
+                            Container(
+                              width: 1,
+                              height: 16,
+                              color: AppTheme.cardBorder,
+                            ),
                             Expanded(
                               child: Padding(
                                 padding: const EdgeInsets.only(left: 12.0),
                                 child: Row(
                                   children: [
-                                    const Text('Paid: ', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                                    const Text(
+                                      'Paid: ',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: AppTheme.textMuted,
+                                      ),
+                                    ),
                                     Text(
                                       '₹${totalPaid.toStringAsFixed(2)}',
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.paidText),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                        color: AppTheme.paidText,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -441,11 +534,20 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                             Expanded(
                               child: ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                    horizontal: 6,
+                                  ),
                                   visualDensity: VisualDensity.compact,
                                 ),
-                                icon: const Icon(Icons.add_shopping_cart, size: 15),
-                                label: const Text('Add Goods', style: TextStyle(fontSize: 11)),
+                                icon: const Icon(
+                                  Icons.add_shopping_cart,
+                                  size: 15,
+                                ),
+                                label: const Text(
+                                  'Add Goods',
+                                  style: TextStyle(fontSize: 11),
+                                ),
                                 onPressed: () => _openAddGoodsDialog(customer),
                               ),
                             ),
@@ -453,30 +555,58 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                             Expanded(
                               child: OutlinedButton.icon(
                                 style: OutlinedButton.styleFrom(
-                                  backgroundColor: AppTheme.paidBg.withValues(alpha: 0.4),
-                                  side: const BorderSide(color: AppTheme.paidText),
+                                  backgroundColor: AppTheme.paidBg.withValues(
+                                    alpha: 0.4,
+                                  ),
+                                  side: const BorderSide(
+                                    color: AppTheme.paidText,
+                                  ),
                                   foregroundColor: AppTheme.paidText,
-                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                    horizontal: 6,
+                                  ),
                                   visualDensity: VisualDensity.compact,
                                 ),
                                 icon: const Icon(Icons.payment, size: 15),
-                                label: const Text('Record Pay', style: TextStyle(fontSize: 11)),
-                                onPressed: () => _openRecordPaymentDialog(customer),
+                                label: const Text(
+                                  'Record Pay',
+                                  style: TextStyle(fontSize: 11),
+                                ),
+                                onPressed:
+                                    () => _openRecordPaymentDialog(customer),
                               ),
                             ),
                             const SizedBox(width: 6),
                             Expanded(
                               child: OutlinedButton.icon(
                                 style: OutlinedButton.styleFrom(
-                                  backgroundColor: Colors.purple.withValues(alpha: 0.05),
-                                  side: BorderSide(color: Colors.purple.withValues(alpha: 0.4)),
+                                  backgroundColor: Colors.purple.withValues(
+                                    alpha: 0.05,
+                                  ),
+                                  side: BorderSide(
+                                    color: Colors.purple.withValues(alpha: 0.4),
+                                  ),
                                   foregroundColor: Colors.purple,
-                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                    horizontal: 6,
+                                  ),
                                   visualDensity: VisualDensity.compact,
                                 ),
-                                icon: const Icon(Icons.menu_book_rounded, size: 15),
-                                label: const Text('Paper Book', style: TextStyle(fontSize: 11)),
-                                onPressed: () => _openAddGoodsDialog(customer, isLegacyMode: true),
+                                icon: const Icon(
+                                  Icons.menu_book_rounded,
+                                  size: 15,
+                                ),
+                                label: const Text(
+                                  'Paper Book',
+                                  style: TextStyle(fontSize: 11),
+                                ),
+                                onPressed:
+                                    () => _openAddGoodsDialog(
+                                      customer,
+                                      isLegacyMode: true,
+                                    ),
                               ),
                             ),
                           ],
@@ -487,7 +617,10 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                 ),
                 secondChild: Container(
                   margin: const EdgeInsets.fromLTRB(16, 4, 16, 2),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(12),
@@ -503,13 +636,19 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: pendingBalance > 0.001 ? AppTheme.pendingText : AppTheme.paidText,
+                              color:
+                                  pendingBalance > 0.001
+                                      ? AppTheme.pendingText
+                                      : AppTheme.paidText,
                             ),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             '• Borrowed: ₹${totalBorrowed.toStringAsFixed(2)}',
-                            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.textSecondary,
+                            ),
                           ),
                         ],
                       ),
@@ -519,7 +658,11 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                             visualDensity: VisualDensity.compact,
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
-                            icon: const Icon(Icons.add_shopping_cart, size: 18, color: AppTheme.saffronPrimary),
+                            icon: const Icon(
+                              Icons.add_shopping_cart,
+                              size: 18,
+                              color: AppTheme.saffronPrimary,
+                            ),
                             tooltip: 'Add Goods',
                             onPressed: () => _openAddGoodsDialog(customer),
                           ),
@@ -528,7 +671,11 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                             visualDensity: VisualDensity.compact,
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
-                            icon: const Icon(Icons.payment, size: 18, color: AppTheme.paidText),
+                            icon: const Icon(
+                              Icons.payment,
+                              size: 18,
+                              color: AppTheme.paidText,
+                            ),
                             tooltip: 'Record Payment',
                             onPressed: () => _openRecordPaymentDialog(customer),
                           ),
@@ -537,9 +684,17 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                             visualDensity: VisualDensity.compact,
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
-                            icon: const Icon(Icons.menu_book_rounded, size: 18, color: Colors.purple),
+                            icon: const Icon(
+                              Icons.menu_book_rounded,
+                              size: 18,
+                              color: Colors.purple,
+                            ),
                             tooltip: 'Paper Book Entry',
-                            onPressed: () => _openAddGoodsDialog(customer, isLegacyMode: true),
+                            onPressed:
+                                () => _openAddGoodsDialog(
+                                  customer,
+                                  isLegacyMode: true,
+                                ),
                           ),
                         ],
                       ),
@@ -559,7 +714,9 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                         indicatorColor: AppTheme.primary,
                         labelColor: AppTheme.primary,
                         unselectedLabelColor: AppTheme.textSecondary,
-                        labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                        labelStyle: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
                         tabs: [
                           Tab(text: 'Borrowed Goods (${filteredGoods.length})'),
                           Tab(text: 'Payment Receipts (${payments.length})'),
@@ -568,11 +725,16 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                     ),
                     IconButton(
                       icon: Icon(
-                        _isHeaderCollapsed ? Icons.fullscreen_exit : Icons.fullscreen,
+                        _isHeaderCollapsed
+                            ? Icons.fullscreen_exit
+                            : Icons.fullscreen,
                         color: AppTheme.saffronPrimary,
                         size: 20,
                       ),
-                      tooltip: _isHeaderCollapsed ? 'Show Full Summary' : 'Maximize List Height',
+                      tooltip:
+                          _isHeaderCollapsed
+                              ? 'Show Full Summary'
+                              : 'Maximize List Height',
                       onPressed: () {
                         setState(() {
                           _isHeaderCollapsed = !_isHeaderCollapsed;
@@ -593,7 +755,10 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                       children: [
                         // Filter Bar
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: Row(
@@ -601,27 +766,36 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                                 FilterChip(
                                   showCheckmark: false,
                                   label: const Text('Default (Unpaid)'),
-                                  selected: _goodsFilter == GoodsFilter.defaultFilter,
+                                  selected:
+                                      _goodsFilter == GoodsFilter.defaultFilter,
                                   onSelected: (selected) {
                                     if (selected) {
                                       setState(() {
-                                        _goodsFilter = GoodsFilter.defaultFilter;
+                                        _goodsFilter =
+                                            GoodsFilter.defaultFilter;
                                       });
                                     }
                                   },
-                                  selectedColor: AppTheme.saffronPrimary.withValues(alpha: 0.2),
+                                  selectedColor: AppTheme.saffronPrimary
+                                      .withValues(alpha: 0.2),
                                   side: BorderSide(
-                                    color: _goodsFilter == GoodsFilter.defaultFilter
-                                        ? AppTheme.saffronPrimary
-                                        : AppTheme.cardBorder,
+                                    color:
+                                        _goodsFilter ==
+                                                GoodsFilter.defaultFilter
+                                            ? AppTheme.saffronPrimary
+                                            : AppTheme.cardBorder,
                                   ),
                                   labelStyle: TextStyle(
-                                    fontWeight: _goodsFilter == GoodsFilter.defaultFilter
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    color: _goodsFilter == GoodsFilter.defaultFilter
-                                        ? AppTheme.saffronDark
-                                        : AppTheme.textSecondary,
+                                    fontWeight:
+                                        _goodsFilter ==
+                                                GoodsFilter.defaultFilter
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                    color:
+                                        _goodsFilter ==
+                                                GoodsFilter.defaultFilter
+                                            ? AppTheme.saffronDark
+                                            : AppTheme.textSecondary,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -637,19 +811,23 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                                       });
                                     }
                                   },
-                                  selectedColor: AppTheme.saffronPrimary.withValues(alpha: 0.2),
+                                  selectedColor: AppTheme.saffronPrimary
+                                      .withValues(alpha: 0.2),
                                   side: BorderSide(
-                                    color: _goodsFilter == GoodsFilter.newest
-                                        ? AppTheme.saffronPrimary
-                                        : AppTheme.cardBorder,
+                                    color:
+                                        _goodsFilter == GoodsFilter.newest
+                                            ? AppTheme.saffronPrimary
+                                            : AppTheme.cardBorder,
                                   ),
                                   labelStyle: TextStyle(
-                                    fontWeight: _goodsFilter == GoodsFilter.newest
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    color: _goodsFilter == GoodsFilter.newest
-                                        ? AppTheme.saffronDark
-                                        : AppTheme.textSecondary,
+                                    fontWeight:
+                                        _goodsFilter == GoodsFilter.newest
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                    color:
+                                        _goodsFilter == GoodsFilter.newest
+                                            ? AppTheme.saffronDark
+                                            : AppTheme.textSecondary,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -665,19 +843,23 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                                       });
                                     }
                                   },
-                                  selectedColor: AppTheme.saffronPrimary.withValues(alpha: 0.2),
+                                  selectedColor: AppTheme.saffronPrimary
+                                      .withValues(alpha: 0.2),
                                   side: BorderSide(
-                                    color: _goodsFilter == GoodsFilter.oldest
-                                        ? AppTheme.saffronPrimary
-                                        : AppTheme.cardBorder,
+                                    color:
+                                        _goodsFilter == GoodsFilter.oldest
+                                            ? AppTheme.saffronPrimary
+                                            : AppTheme.cardBorder,
                                   ),
                                   labelStyle: TextStyle(
-                                    fontWeight: _goodsFilter == GoodsFilter.oldest
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    color: _goodsFilter == GoodsFilter.oldest
-                                        ? AppTheme.saffronDark
-                                        : AppTheme.textSecondary,
+                                    fontWeight:
+                                        _goodsFilter == GoodsFilter.oldest
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                    color:
+                                        _goodsFilter == GoodsFilter.oldest
+                                            ? AppTheme.saffronDark
+                                            : AppTheme.textSecondary,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -687,12 +869,14 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                                   avatar: Icon(
                                     Icons.date_range_outlined,
                                     size: 15,
-                                    color: _goodsFilter == GoodsFilter.range
-                                        ? AppTheme.saffronDark
-                                        : AppTheme.textSecondary,
+                                    color:
+                                        _goodsFilter == GoodsFilter.range
+                                            ? AppTheme.saffronDark
+                                            : AppTheme.textSecondary,
                                   ),
                                   label: Text(
-                                    _goodsFilter == GoodsFilter.range && _selectedDateRange != null
+                                    _goodsFilter == GoodsFilter.range &&
+                                            _selectedDateRange != null
                                         ? '${_selectedDateRange!.start.day}/${_selectedDateRange!.start.month}/${_selectedDateRange!.start.year} - ${_selectedDateRange!.end.day}/${_selectedDateRange!.end.month}/${_selectedDateRange!.end.year}'
                                         : 'Range',
                                   ),
@@ -701,10 +885,15 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                                     final picked = await showDateRangePicker(
                                       context: context,
                                       firstDate: DateTime(2000),
-                                      lastDate: DateTime.now().add(const Duration(days: 1)),
-                                      initialDateRange: _selectedDateRange ??
+                                      lastDate: DateTime.now().add(
+                                        const Duration(days: 1),
+                                      ),
+                                      initialDateRange:
+                                          _selectedDateRange ??
                                           DateTimeRange(
-                                            start: DateTime.now().subtract(const Duration(days: 30)),
+                                            start: DateTime.now().subtract(
+                                              const Duration(days: 30),
+                                            ),
                                             end: DateTime.now(),
                                           ),
                                       builder: (context, child) {
@@ -731,19 +920,23 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                                       });
                                     }
                                   },
-                                  selectedColor: AppTheme.saffronPrimary.withValues(alpha: 0.2),
+                                  selectedColor: AppTheme.saffronPrimary
+                                      .withValues(alpha: 0.2),
                                   side: BorderSide(
-                                    color: _goodsFilter == GoodsFilter.range
-                                        ? AppTheme.saffronPrimary
-                                        : AppTheme.cardBorder,
+                                    color:
+                                        _goodsFilter == GoodsFilter.range
+                                            ? AppTheme.saffronPrimary
+                                            : AppTheme.cardBorder,
                                   ),
                                   labelStyle: TextStyle(
-                                    fontWeight: _goodsFilter == GoodsFilter.range
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    color: _goodsFilter == GoodsFilter.range
-                                        ? AppTheme.saffronDark
-                                        : AppTheme.textSecondary,
+                                    fontWeight:
+                                        _goodsFilter == GoodsFilter.range
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                    color:
+                                        _goodsFilter == GoodsFilter.range
+                                            ? AppTheme.saffronDark
+                                            : AppTheme.textSecondary,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -754,226 +947,367 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
 
                         // Goods List
                         Expanded(
-                          child: filteredGoods.isEmpty
-                              ? Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(Icons.shopping_bag_outlined, size: 48, color: AppTheme.textMuted),
-                                      const SizedBox(height: 12),
-                                      Text(
-                                        _goodsFilter == GoodsFilter.defaultFilter && goods.isNotEmpty
-                                            ? 'No unpaid goods found.'
-                                            : _goodsFilter == GoodsFilter.range && _selectedDateRange != null
-                                                ? 'No goods in selected range.'
-                                                : 'No goods added yet.',
-                                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 15, fontWeight: FontWeight.bold),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        _goodsFilter == GoodsFilter.defaultFilter && goods.isNotEmpty
-                                            ? 'All borrowed items have been fully settled!'
-                                            : 'Tap "+ Add Goods" above to log borrowed items.',
-                                        style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              : ListView.builder(
-                                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                                  itemCount: filteredGoods.length,
-                                  itemBuilder: (context, index) {
-                                    final item = filteredGoods[index];
-                              final progress = item.totalPrice > 0 ? (item.amountPaid / item.totalPrice).clamp(0.0, 1.0) : 1.0;
-
-                              Color statusBg;
-                              Color statusText;
-                              if (item.isPaid) {
-                                statusBg = AppTheme.paidBg;
-                                statusText = AppTheme.paidText;
-                              } else if (item.isPartiallyPaid) {
-                                statusBg = AppTheme.partialBg;
-                                statusText = AppTheme.partialText;
-                              } else {
-                                statusBg = AppTheme.pendingBg;
-                                statusText = AppTheme.pendingText;
-                              }
-
-                              return Card(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(14.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: AppTheme.primary.withValues(alpha:0.08),
-                                              borderRadius: BorderRadius.circular(10),
-                                            ),
-                                            child: Icon(
-                                              _getCategoryIcon(item.category),
-                                              color: AppTheme.primary,
-                                              size: 20,
-                                            ),
+                          child:
+                              filteredGoods.isEmpty
+                                  ? Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.shopping_bag_outlined,
+                                          size: 48,
+                                          color: AppTheme.textMuted,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          _goodsFilter ==
+                                                      GoodsFilter
+                                                          .defaultFilter &&
+                                                  goods.isNotEmpty
+                                              ? 'No unpaid goods found.'
+                                              : _goodsFilter ==
+                                                      GoodsFilter.range &&
+                                                  _selectedDateRange != null
+                                              ? 'No goods in selected range.'
+                                              : 'No goods added yet.',
+                                          style: const TextStyle(
+                                            color: AppTheme.textSecondary,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
                                           ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  item.name,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 16,
-                                                    color: AppTheme.textPrimary,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _goodsFilter ==
+                                                      GoodsFilter
+                                                          .defaultFilter &&
+                                                  goods.isNotEmpty
+                                              ? 'All borrowed items have been fully settled!'
+                                              : 'Tap "+ Add Goods" above to log borrowed items.',
+                                          style: const TextStyle(
+                                            color: AppTheme.textMuted,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                  : ListView.builder(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      4,
+                                      16,
+                                      16,
+                                    ),
+                                    itemCount: filteredGoods.length,
+                                    itemBuilder: (context, index) {
+                                      final item = filteredGoods[index];
+                                      final progress =
+                                          item.totalPrice > 0
+                                              ? (item.amountPaid /
+                                                      item.totalPrice)
+                                                  .clamp(0.0, 1.0)
+                                              : 1.0;
+
+                                      Color statusBg;
+                                      Color statusText;
+                                      if (item.isPaid) {
+                                        statusBg = AppTheme.paidBg;
+                                        statusText = AppTheme.paidText;
+                                      } else if (item.isPartiallyPaid) {
+                                        statusBg = AppTheme.partialBg;
+                                        statusText = AppTheme.partialText;
+                                      } else {
+                                        statusBg = AppTheme.pendingBg;
+                                        statusText = AppTheme.pendingText;
+                                      }
+
+                                      return Card(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(14.0),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Container(
+                                                    padding:
+                                                        const EdgeInsets.all(8),
+                                                    decoration: BoxDecoration(
+                                                      color: AppTheme.primary
+                                                          .withValues(
+                                                            alpha: 0.08,
+                                                          ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            10,
+                                                          ),
+                                                    ),
+                                                    child: Icon(
+                                                      _getCategoryIcon(
+                                                        item.category,
+                                                      ),
+                                                      color: AppTheme.primary,
+                                                      size: 20,
+                                                    ),
                                                   ),
-                                                ),
-                                                Text(
-                                                  '${item.category} • ${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 1)} qty @ ₹${item.unitPrice.toStringAsFixed(2)}',
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: AppTheme.textSecondary,
+                                                  const SizedBox(width: 12),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          item.name,
+                                                          style: const TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            fontSize: 16,
+                                                            color:
+                                                                AppTheme
+                                                                    .textPrimary,
+                                                          ),
+                                                        ),
+                                                        Text(
+                                                          '${item.category} • ${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 1)} qty @ ₹${item.unitPrice.toStringAsFixed(2)}',
+                                                          style: const TextStyle(
+                                                            fontSize: 12,
+                                                            color:
+                                                                AppTheme
+                                                                    .textSecondary,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 3,
+                                                        ),
+                                                        Row(
+                                                          children: [
+                                                            const Icon(
+                                                              Icons
+                                                                  .access_time_rounded,
+                                                              size: 12,
+                                                              color:
+                                                                  AppTheme
+                                                                      .textMuted,
+                                                            ),
+                                                            const SizedBox(
+                                                              width: 3,
+                                                            ),
+                                                            Text(
+                                                              'Borrowed: ${_formatDateTime(item.date)}',
+                                                              style: const TextStyle(
+                                                                fontSize: 11,
+                                                                color:
+                                                                    AppTheme
+                                                                        .textMuted,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
                                                   ),
-                                                ),
-                                                const SizedBox(height: 3),
-                                                Row(
-                                                  children: [
-                                                    const Icon(Icons.access_time_rounded, size: 12, color: AppTheme.textMuted),
-                                                    const SizedBox(width: 3),
-                                                    Text(
-                                                      'Borrowed: ${_formatDateTime(item.date)}',
-                                                      style: const TextStyle(
+                                                  Container(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 4,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: statusBg,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                    ),
+                                                    child: Text(
+                                                      item.statusLabel,
+                                                      style: TextStyle(
                                                         fontSize: 11,
-                                                        color: AppTheme.textMuted,
-                                                        fontWeight: FontWeight.w500,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: statusText,
                                                       ),
                                                     ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 12),
+
+                                              // Progress bar & settlement info
+                                              ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                                child: LinearProgressIndicator(
+                                                  value: progress,
+                                                  backgroundColor:
+                                                      AppTheme.cardBorder,
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                        Color
+                                                      >(
+                                                        item.isPaid
+                                                            ? AppTheme.paidText
+                                                            : item
+                                                                .isPartiallyPaid
+                                                            ? AppTheme
+                                                                .partialText
+                                                            : AppTheme
+                                                                .pendingText,
+                                                      ),
+                                                  minHeight: 6,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    'Paid: ₹${item.amountPaid.toStringAsFixed(2)} / ₹${item.totalPrice.toStringAsFixed(2)}',
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color:
+                                                          AppTheme
+                                                              .textSecondary,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    item.isPaid
+                                                        ? 'Settled'
+                                                        : 'Pending: ₹${item.remainingAmount.toStringAsFixed(2)}',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color:
+                                                          item.isPaid
+                                                              ? AppTheme
+                                                                  .paidText
+                                                              : AppTheme
+                                                                  .pendingText,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              if (!item.isPaid ||
+                                                  item.canBeEdited) ...[
+                                                const SizedBox(height: 8),
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.end,
+                                                  children: [
+                                                    if (item.canBeEdited) ...[
+                                                      TextButton.icon(
+                                                        style: TextButton.styleFrom(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 8,
+                                                                vertical: 4,
+                                                              ),
+                                                          minimumSize:
+                                                              Size.zero,
+                                                          tapTargetSize:
+                                                              MaterialTapTargetSize
+                                                                  .shrinkWrap,
+                                                          foregroundColor:
+                                                              Colors.blue,
+                                                        ),
+                                                        icon: const Icon(
+                                                          Icons.edit_outlined,
+                                                          size: 14,
+                                                        ),
+                                                        label: const Text(
+                                                          'Edit Record',
+                                                          style: TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                        onPressed:
+                                                            () =>
+                                                                _openEditGoodsDialog(
+                                                                  customer,
+                                                                  item,
+                                                                ),
+                                                      ),
+                                                      if (!item.isPaid)
+                                                        const SizedBox(
+                                                          width: 8,
+                                                        ),
+                                                    ],
+                                                    if (!item.isPaid) ...[
+                                                      TextButton.icon(
+                                                        style: TextButton.styleFrom(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 8,
+                                                                vertical: 4,
+                                                              ),
+                                                          minimumSize:
+                                                              Size.zero,
+                                                          tapTargetSize:
+                                                              MaterialTapTargetSize
+                                                                  .shrinkWrap,
+                                                          foregroundColor:
+                                                              AppTheme.primary,
+                                                        ),
+                                                        icon: const Icon(
+                                                          Icons
+                                                              .check_circle_outline,
+                                                          size: 14,
+                                                        ),
+                                                        label: const Text(
+                                                          'Mark Item Settled',
+                                                          style: TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                          ),
+                                                        ),
+                                                        onPressed: () async {
+                                                          await widget
+                                                              .repository
+                                                              .markGoodAsPaid(
+                                                                item.id,
+                                                              );
+                                                          if (context.mounted) {
+                                                            ScaffoldMessenger.of(
+                                                              context,
+                                                            ).showSnackBar(
+                                                              SnackBar(
+                                                                content: Text(
+                                                                  'Marked "${item.name}" as fully paid!',
+                                                                ),
+                                                                backgroundColor:
+                                                                    AppTheme
+                                                                        .primary,
+                                                              ),
+                                                            );
+                                                          }
+                                                        },
+                                                      ),
+                                                    ],
                                                   ],
                                                 ),
                                               ],
-                                            ),
-                                          ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: statusBg,
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              item.statusLabel,
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
-                                                color: statusText,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 12),
-
-                                      // Progress bar & settlement info
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(4),
-                                        child: LinearProgressIndicator(
-                                          value: progress,
-                                          backgroundColor: AppTheme.cardBorder,
-                                          valueColor: AlwaysStoppedAnimation<Color>(
-                                            item.isPaid
-                                                ? AppTheme.paidText
-                                                : item.isPartiallyPaid
-                                                    ? AppTheme.partialText
-                                                    : AppTheme.pendingText,
-                                          ),
-                                          minHeight: 6,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            'Paid: ₹${item.amountPaid.toStringAsFixed(2)} / ₹${item.totalPrice.toStringAsFixed(2)}',
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                              color: AppTheme.textSecondary,
-                                            ),
-                                          ),
-                                          Text(
-                                            item.isPaid
-                                                ? 'Settled'
-                                                : 'Pending: ₹${item.remainingAmount.toStringAsFixed(2)}',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                              color: item.isPaid ? AppTheme.paidText : AppTheme.pendingText,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      if (!item.isPaid || item.canBeEdited) ...[
-                                        const SizedBox(height: 8),
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.end,
-                                          children: [
-                                            if (item.canBeEdited) ...[
-                                              TextButton.icon(
-                                                style: TextButton.styleFrom(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                  minimumSize: Size.zero,
-                                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                                  foregroundColor: Colors.blue,
-                                                ),
-                                                icon: const Icon(Icons.edit_outlined, size: 14),
-                                                label: const Text(
-                                                  'Edit Record',
-                                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                                ),
-                                                onPressed: () => _openEditGoodsDialog(customer, item),
-                                              ),
-                                              if (!item.isPaid) const SizedBox(width: 8),
                                             ],
-                                            if (!item.isPaid) ...[
-                                              TextButton.icon(
-                                                style: TextButton.styleFrom(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                  minimumSize: Size.zero,
-                                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                                  foregroundColor: AppTheme.primary,
-                                                ),
-                                                icon: const Icon(Icons.check_circle_outline, size: 14),
-                                                label: const Text(
-                                                  'Mark Item Settled',
-                                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                                ),
-                                                onPressed: () async {
-                                                  await widget.repository.markGoodAsPaid(item.id);
-                                                  if (context.mounted) {
-                                                    ScaffoldMessenger.of(context).showSnackBar(
-                                                      SnackBar(
-                                                        content: Text('Marked "${item.name}" as fully paid!'),
-                                                        backgroundColor: AppTheme.primary,
-                                                      ),
-                                                    );
-                                                  }
-                                                },
-                                              ),
-                                            ],
-                                          ],
+                                          ),
                                         ),
-                                      ],
-                                    ],
+                                      );
+                                    },
                                   ),
-                                ),
-                              );
-                              },
-                            ),
                         ),
                       ],
                     ),
@@ -981,93 +1315,119 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                     // Tab 2: Payment Receipts History
                     payments.isEmpty
                         ? const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.receipt_long_outlined, size: 48, color: AppTheme.textMuted),
-                                SizedBox(height: 12),
-                                Text(
-                                  'No payment records yet.',
-                                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 15),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.receipt_long_outlined,
+                                size: 48,
+                                color: AppTheme.textMuted,
+                              ),
+                              SizedBox(height: 12),
+                              Text(
+                                'No payment records yet.',
+                                style: TextStyle(
+                                  color: AppTheme.textSecondary,
+                                  fontSize: 15,
                                 ),
-                              ],
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: payments.length,
-                            itemBuilder: (context, index) {
-                              final receipt = payments[index];
-                              return Card(
-                                child: ExpansionTile(
-                                  shape: const Border(),
-                                  leading: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: const BoxDecoration(
-                                      color: AppTheme.paidBg,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.check, color: AppTheme.paidText, size: 20),
-                                  ),
-                                  title: Text(
-                                    '₹${receipt.amountPaid.toStringAsFixed(2)} Payment',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: AppTheme.textPrimary,
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    '${_formatDateTime(receipt.date)}'
-                                    '${receipt.note.isNotEmpty ? ' • ${receipt.note}' : ''}',
-                                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                                  ),
-                                  children: [
-                                    Container(
-                                      color: AppTheme.background,
-                                      padding: const EdgeInsets.all(12),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            'FIFO Settlement Breakdown:',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                              color: AppTheme.textSecondary,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          ...receipt.settlements.map(
-                                            (s) => Padding(
-                                              padding: const EdgeInsets.symmetric(vertical: 2.0),
-                                              child: Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    '• ${s.itemName}',
-                                                    style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
-                                                  ),
-                                                  Text(
-                                                    '+₹${s.amountApplied.toStringAsFixed(2)} ${s.isFullyPaidNow ? "(Cleared)" : "(Partial)"}',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: s.isFullyPaidNow ? AppTheme.paidText : AppTheme.partialText,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
+                              ),
+                            ],
                           ),
+                        )
+                        : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: payments.length,
+                          itemBuilder: (context, index) {
+                            final receipt = payments[index];
+                            return Card(
+                              child: ExpansionTile(
+                                shape: const Border(),
+                                leading: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: const BoxDecoration(
+                                    color: AppTheme.paidBg,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.check,
+                                    color: AppTheme.paidText,
+                                    size: 20,
+                                  ),
+                                ),
+                                title: Text(
+                                  '₹${receipt.amountPaid.toStringAsFixed(2)} Payment',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '${_formatDateTime(receipt.date)}'
+                                  '${receipt.note.isNotEmpty ? ' • ${receipt.note}' : ''}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                                children: [
+                                  Container(
+                                    color: AppTheme.background,
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'FIFO Settlement Breakdown:',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.textSecondary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        ...receipt.settlements.map(
+                                          (s) => Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 2.0,
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Text(
+                                                  '• ${s.itemName}',
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    color: AppTheme.textPrimary,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  '+₹${s.amountApplied.toStringAsFixed(2)} ${s.isFullyPaidNow ? "(Cleared)" : "(Partial)"}',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color:
+                                                        s.isFullyPaidNow
+                                                            ? AppTheme.paidText
+                                                            : AppTheme
+                                                                .partialText,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                   ],
                 ),
               ),
