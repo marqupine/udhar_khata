@@ -15,6 +15,7 @@ class UdharRepository extends ChangeNotifier {
     _loadFromStorage();
     _initFirestoreSync();
     autoPurgePaidRecordsOlderThan(daysThreshold: 7);
+    autoPurgeRecycleBin(hoursThreshold: 72);
   }
 
   List<Customer> get customers => List.unmodifiable(_customers);
@@ -225,44 +226,137 @@ class UdharRepository extends ChangeNotifier {
   }
 
   List<GoodItem> getGoodsForCustomer(String customerId) {
-    final list = _goods.where((g) => g.customerId == customerId).toList();
+    final list = _goods.where((g) => g.customerId == customerId && !g.isDeleted).toList();
     list.sort((a, b) => b.date.compareTo(a.date)); // newest first for display
     return list;
   }
 
   double getCustomerTotalBorrowed(String customerId) {
     return _goods
-        .where((g) => g.customerId == customerId)
+        .where((g) => g.customerId == customerId && !g.isDeleted)
         .fold(0.0, (sum, g) => sum + g.totalPrice);
   }
 
   double getCustomerTotalPaid(String customerId) {
     return _goods
-        .where((g) => g.customerId == customerId)
+        .where((g) => g.customerId == customerId && !g.isDeleted)
         .fold(0.0, (sum, g) => sum + g.amountPaid);
   }
 
   double getCustomerPendingBalance(String customerId) {
     return _goods
-        .where((g) => g.customerId == customerId)
+        .where((g) => g.customerId == customerId && !g.isDeleted)
         .fold(0.0, (sum, g) => sum + g.remainingAmount);
   }
 
   // Global Financial Metrics
   double get grandTotalPending {
-    return _goods.fold(0.0, (sum, g) => sum + g.remainingAmount);
+    return _goods.where((g) => !g.isDeleted).fold(0.0, (sum, g) => sum + g.remainingAmount);
   }
 
   double get grandTotalSettled {
-    return _goods.fold(0.0, (sum, g) => sum + g.amountPaid);
+    return _goods.where((g) => !g.isDeleted).fold(0.0, (sum, g) => sum + g.amountPaid);
   }
 
   int get activeBorrowersCount {
     final customerIdsWithBalance = _goods
-        .where((g) => g.remainingAmount > 0.001)
+        .where((g) => !g.isDeleted && g.remainingAmount > 0.001)
         .map((g) => g.customerId)
         .toSet();
     return customerIdsWithBalance.length;
+  }
+
+  // --- Recycle Bin Operations ---
+
+  /// Moves a GoodItem to the Recycle Bin (soft delete).
+  Future<GoodItem?> moveToBin(String goodId) async {
+    final index = _goods.indexWhere((g) => g.id == goodId);
+    if (index == -1) return null;
+
+    final updated = _goods[index].copyWith(
+      isDeleted: true,
+      deletedAt: DateTime.now(),
+    );
+    _goods[index] = updated;
+    await _persistAll();
+
+    if (_firestoreService != null) {
+      await _firestoreService.saveGoodItem(updated);
+    }
+
+    notifyListeners();
+    return updated;
+  }
+
+  /// Restores a GoodItem from the Recycle Bin.
+  Future<GoodItem?> restoreFromBin(String goodId) async {
+    final index = _goods.indexWhere((g) => g.id == goodId);
+    if (index == -1) return null;
+
+    final updated = GoodItem(
+      id: _goods[index].id,
+      customerId: _goods[index].customerId,
+      name: _goods[index].name,
+      category: _goods[index].category,
+      quantity: _goods[index].quantity,
+      unitPrice: _goods[index].unitPrice,
+      totalPrice: _goods[index].totalPrice,
+      amountPaid: _goods[index].amountPaid,
+      date: _goods[index].date,
+      isDeleted: false,
+      deletedAt: null,
+    );
+    _goods[index] = updated;
+    await _persistAll();
+
+    if (_firestoreService != null) {
+      await _firestoreService.saveGoodItem(updated);
+    }
+
+    notifyListeners();
+    return updated;
+  }
+
+  /// Permanently deletes a GoodItem.
+  Future<void> permanentlyDeleteGood(String goodId) async {
+    _goods.removeWhere((g) => g.id == goodId);
+    await _persistAll();
+
+    if (_firestoreService != null) {
+      await _firestoreService.deleteGoodItem(goodId);
+    }
+
+    notifyListeners();
+  }
+
+  /// Returns deleted goods in the Recycle Bin for a customer.
+  List<GoodItem> getRecycleBinGoods(String customerId) {
+    final list = _goods.where((g) => g.customerId == customerId && g.isDeleted).toList();
+    list.sort((a, b) => (b.deletedAt ?? b.date).compareTo(a.deletedAt ?? a.date));
+    return list;
+  }
+
+  /// Automatically purges items from Recycle Bin older than [hoursThreshold] (default: 72 hours).
+  Future<int> autoPurgeRecycleBin({int hoursThreshold = 72}) async {
+    final now = DateTime.now();
+    final expired = _goods.where((g) {
+      if (!g.isDeleted || g.deletedAt == null) return false;
+      return now.difference(g.deletedAt!).inHours >= hoursThreshold;
+    }).toList();
+
+    if (expired.isEmpty) return 0;
+
+    _goods.removeWhere((g) => expired.contains(g));
+    await _persistAll();
+
+    if (_firestoreService != null) {
+      for (final g in expired) {
+        await _firestoreService.deleteGoodItem(g.id);
+      }
+    }
+
+    notifyListeners();
+    return expired.length;
   }
 
   // --- FIFO Settlement Engine ---
@@ -271,7 +365,7 @@ class UdharRepository extends ChangeNotifier {
     if (paymentAmount <= 0) return [];
 
     final pendingGoods = _goods
-        .where((g) => g.customerId == customerId && g.remainingAmount > 0.001)
+        .where((g) => g.customerId == customerId && !g.isDeleted && g.remainingAmount > 0.001)
         .toList();
     pendingGoods.sort((a, b) => a.date.compareTo(b.date));
 

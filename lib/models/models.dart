@@ -96,6 +96,8 @@ class GoodItem {
   final double totalPrice;
   double amountPaid;
   final DateTime date;
+  final bool isDeleted;
+  final DateTime? deletedAt;
 
   GoodItem({
     required this.id,
@@ -107,6 +109,8 @@ class GoodItem {
     double? totalPrice,
     this.amountPaid = 0.0,
     required this.date,
+    this.isDeleted = false,
+    this.deletedAt,
   }) : totalPrice = totalPrice ?? (quantity * unitPrice);
 
   double get remainingAmount => (totalPrice - amountPaid).clamp(0.0, totalPrice);
@@ -136,6 +140,8 @@ class GoodItem {
       'totalPrice': totalPrice,
       'amountPaid': amountPaid,
       'date': date.toIso8601String(),
+      'isDeleted': isDeleted,
+      'deletedAt': deletedAt?.toIso8601String(),
     };
   }
 
@@ -150,6 +156,8 @@ class GoodItem {
       totalPrice: (map['totalPrice'] as num?)?.toDouble(),
       amountPaid: (map['amountPaid'] as num?)?.toDouble() ?? 0.0,
       date: DateTime.parse(map['date'] ?? DateTime.now().toIso8601String()),
+      isDeleted: map['isDeleted'] ?? false,
+      deletedAt: map['deletedAt'] != null ? DateTime.tryParse(map['deletedAt'].toString()) : null,
     );
   }
 
@@ -166,6 +174,8 @@ class GoodItem {
     double? totalPrice,
     double? amountPaid,
     DateTime? date,
+    bool? isDeleted,
+    DateTime? deletedAt,
   }) {
     return GoodItem(
       id: id ?? this.id,
@@ -177,6 +187,8 @@ class GoodItem {
       totalPrice: totalPrice ?? this.totalPrice,
       amountPaid: amountPaid ?? this.amountPaid,
       date: date ?? this.date,
+      isDeleted: isDeleted ?? this.isDeleted,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 }

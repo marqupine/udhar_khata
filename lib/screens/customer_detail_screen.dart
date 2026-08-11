@@ -237,6 +237,243 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
     return '$day $month $year, $hour:$minute $period';
   }
 
+  void _openRecycleBinBottomSheet(Customer customer) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      backgroundColor: AppTheme.surface,
+      builder: (context) {
+        return ListenableBuilder(
+          listenable: widget.repository,
+          builder: (context, _) {
+            final binGoods = widget.repository.getRecycleBinGoods(customer.id);
+            final now = DateTime.now();
+
+            return Container(
+              padding: const EdgeInsets.all(20),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.75,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.auto_delete_outlined,
+                            color: AppTheme.pendingText,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Recycle Bin (${binGoods.length})',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: AppTheme.textSecondary),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Items in Recycle Bin are automatically deleted after 72 hours.',
+                    style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: binGoods.isEmpty
+                        ? const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.delete_sweep_outlined,
+                                  size: 48,
+                                  color: AppTheme.textMuted,
+                                ),
+                                SizedBox(height: 12),
+                                Text(
+                                  'Recycle Bin is empty',
+                                  style: TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: binGoods.length,
+                            itemBuilder: (context, index) {
+                              final item = binGoods[index];
+                              final deletedAt = item.deletedAt ?? item.date;
+                              final hoursLeft = (72 - now.difference(deletedAt).inHours).clamp(0, 72);
+
+                              return Card(
+                                margin: const EdgeInsets.symmetric(vertical: 6),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              item.name,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 15,
+                                                color: AppTheme.textPrimary,
+                                              ),
+                                            ),
+                                          ),
+                                          Text(
+                                            '₹${item.totalPrice.toStringAsFixed(2)}',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
+                                              color: AppTheme.pendingText,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.timer_outlined,
+                                            size: 12,
+                                            color: AppTheme.saffronDark,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Expires in ${hoursLeft}h',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppTheme.saffronDark,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '• Deleted ${_formatDateTime(deletedAt)}',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: AppTheme.textMuted,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        children: [
+                                          TextButton.icon(
+                                            icon: const Icon(
+                                              Icons.restore_from_trash_outlined,
+                                              size: 16,
+                                            ),
+                                            label: const Text(
+                                              'Restore',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            style: TextButton.styleFrom(
+                                              foregroundColor: AppTheme.primary,
+                                            ),
+                                            onPressed: () async {
+                                              await widget.repository.restoreFromBin(item.id);
+                                              if (context.mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text('Restored "${item.name}" back to borrowed goods'),
+                                                    backgroundColor: AppTheme.primary,
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                          ),
+                                          const SizedBox(width: 8),
+                                          TextButton.icon(
+                                            icon: const Icon(
+                                              Icons.delete_forever_outlined,
+                                              size: 16,
+                                            ),
+                                            label: const Text(
+                                              'Delete',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            style: TextButton.styleFrom(
+                                              foregroundColor: AppTheme.pendingText,
+                                            ),
+                                            onPressed: () async {
+                                              final confirm = await showDialog<bool>(
+                                                context: context,
+                                                builder: (context) => AlertDialog(
+                                                  title: const Text('Delete Permanently?'),
+                                                  content: Text('Permanently remove "${item.name}"? This action cannot be undone.'),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () => Navigator.of(context).pop(false),
+                                                      child: const Text('Cancel'),
+                                                    ),
+                                                    ElevatedButton(
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor: AppTheme.pendingText,
+                                                      ),
+                                                      onPressed: () => Navigator.of(context).pop(true),
+                                                      child: const Text('Delete Permanently'),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                              if (confirm == true) {
+                                                await widget.repository.permanentlyDeleteGood(item.id);
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -261,6 +498,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
 
         final goods = widget.repository.getGoodsForCustomer(customer.id);
         final filteredGoods = _getFilteredGoods(goods);
+        final binGoods = widget.repository.getRecycleBinGoods(customer.id);
         final payments = widget.repository.getPaymentsForCustomer(customer.id);
 
         return Scaffold(
@@ -314,6 +552,18 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
               ],
             ),
             actions: [
+              IconButton(
+                icon: Badge(
+                  label: Text('${binGoods.length}'),
+                  isLabelVisible: binGoods.isNotEmpty,
+                  child: const Icon(
+                    Icons.auto_delete_outlined,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                tooltip: 'Recycle Bin (${binGoods.length})',
+                onPressed: () => _openRecycleBinBottomSheet(customer),
+              ),
               IconButton(
                 icon: const Icon(
                   Icons.delete_sweep_outlined,
@@ -1023,7 +1273,132 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                                         statusText = AppTheme.pendingText;
                                       }
 
-                                      return Card(
+                                      return Dismissible(
+                                        key: ValueKey(item.id),
+                                        direction: DismissDirection.startToEnd,
+                                        background: Container(
+                                          margin: const EdgeInsets.symmetric(
+                                            vertical: 6,
+                                          ),
+                                          padding: const EdgeInsets.only(
+                                            left: 20,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.pendingBg,
+                                            borderRadius:
+                                                BorderRadius.circular(18),
+                                            border: Border.all(
+                                              color: AppTheme.pendingText
+                                                  .withValues(alpha: 0.3),
+                                            ),
+                                          ),
+                                          alignment: Alignment.centerLeft,
+                                          child: const Row(
+                                            children: [
+                                              Icon(
+                                                Icons.delete_outline,
+                                                color: AppTheme.pendingText,
+                                                size: 24,
+                                              ),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Move to Bin',
+                                                style: TextStyle(
+                                                  color: AppTheme.pendingText,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        confirmDismiss: (direction) async {
+                                          return await showDialog<bool>(
+                                            context: context,
+                                            builder:
+                                                (context) => AlertDialog(
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          20,
+                                                        ),
+                                                  ),
+                                                  title: const Text(
+                                                    'Move to Recycle Bin?',
+                                                  ),
+                                                  content: Text(
+                                                    'Are you sure you want to move "${item.name}" (₹${item.totalPrice.toStringAsFixed(2)}) to the Recycle Bin?\n\nIt will be permanently deleted after 72 hours if not restored.',
+                                                  ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed:
+                                                          () =>
+                                                              Navigator.of(
+                                                                context,
+                                                              ).pop(false),
+                                                      child: const Text(
+                                                        'Cancel',
+                                                        style: TextStyle(
+                                                          color:
+                                                              AppTheme
+                                                                  .textSecondary,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    ElevatedButton(
+                                                      style:
+                                                          ElevatedButton
+                                                              .styleFrom(
+                                                                backgroundColor:
+                                                                    AppTheme
+                                                                        .pendingText,
+                                                              ),
+                                                      onPressed:
+                                                          () =>
+                                                              Navigator.of(
+                                                                context,
+                                                              ).pop(true),
+                                                      child: const Text(
+                                                        'Move to Bin',
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                          );
+                                        },
+                                        onDismissed: (direction) async {
+                                          await widget.repository.moveToBin(
+                                            item.id,
+                                          );
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).clearSnackBars();
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Moved "${item.name}" to Recycle Bin',
+                                                ),
+                                                duration: const Duration(
+                                                  seconds: 4,
+                                                ),
+                                                action: SnackBarAction(
+                                                  label: 'UNDO',
+                                                  textColor: AppTheme.royalGold,
+                                                  onPressed: () async {
+                                                    await widget.repository
+                                                        .restoreFromBin(
+                                                          item.id,
+                                                        );
+                                                  },
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        child: Card(
                                         child: Padding(
                                           padding: const EdgeInsets.all(14.0),
                                           child: Column(
@@ -1305,9 +1680,10 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                                             ],
                                           ),
                                         ),
-                                      );
-                                    },
-                                  ),
+                                      ),
+                                    );
+                                  },
+                                ),
                         ),
                       ],
                     ),

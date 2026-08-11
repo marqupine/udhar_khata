@@ -193,4 +193,39 @@ void main() {
       throwsA(isA<StateError>()),
     );
   });
+
+  test('Recycle Bin soft-delete, restore, and 72-hour auto-purge', () async {
+    final repository = UdharRepository();
+    final customer = await repository.addCustomer(name: 'Recycle Test User');
+
+    final item1 = await repository.addGoodItem(
+      customerId: customer.id,
+      name: 'Item 1',
+      category: 'General',
+      quantity: 1,
+      unitPrice: 100,
+    );
+
+    expect(repository.getGoodsForCustomer(customer.id).length, 1);
+    expect(repository.getCustomerPendingBalance(customer.id), 100.0);
+
+    // 1. Move to Bin (soft delete)
+    final moved = await repository.moveToBin(item1.id);
+    expect(moved?.isDeleted, true);
+    expect(repository.getGoodsForCustomer(customer.id).length, 0);
+    expect(repository.getCustomerPendingBalance(customer.id), 0.0);
+    expect(repository.getRecycleBinGoods(customer.id).length, 1);
+
+    // 2. Restore from Bin
+    await repository.restoreFromBin(item1.id);
+    expect(repository.getGoodsForCustomer(customer.id).length, 1);
+    expect(repository.getCustomerPendingBalance(customer.id), 100.0);
+    expect(repository.getRecycleBinGoods(customer.id).length, 0);
+
+    // 3. Move to Bin and test auto-purge threshold
+    await repository.moveToBin(item1.id);
+    final purgedCount = await repository.autoPurgeRecycleBin(hoursThreshold: 0);
+    expect(purgedCount, 1);
+    expect(repository.getRecycleBinGoods(customer.id).length, 0);
+  });
 }
