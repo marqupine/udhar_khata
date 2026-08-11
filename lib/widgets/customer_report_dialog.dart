@@ -63,7 +63,7 @@ class CustomerReportDialog extends StatelessWidget {
     final nowStr = _formatDateTime(DateTime.now());
     final buffer = StringBuffer();
 
-    buffer.writeln('📄 *${AppConstants.appName.toUpperCase()} STATEMENT*');
+    buffer.writeln('📄 *${AppConstants.appName.toUpperCase()} PENDING DUES STATEMENT*');
     buffer.writeln('========================================');
     buffer.writeln('Customer: ${customer.name}');
     if (customer.phoneNumber.isNotEmpty) {
@@ -79,10 +79,10 @@ class CustomerReportDialog extends StatelessWidget {
     buffer.writeln('Total Paid: ₹${totalPaid.toStringAsFixed(2)}');
     buffer.writeln('Net Outstanding Debt: ₹${pendingBalance.toStringAsFixed(2)}');
     buffer.writeln('========================================');
-    buffer.writeln('*BORROWED GOODS DETAILS (${goods.length} Items)*\n');
+    buffer.writeln('*OUTSTANDING ITEMS DETAILS (${goods.length} Items)*\n');
 
     if (goods.isEmpty) {
-      buffer.writeln('No active borrowed items found.');
+      buffer.writeln('All clear! No pending dues found.');
     } else {
       for (int i = 0; i < goods.length; i++) {
         final item = goods[i];
@@ -95,25 +95,26 @@ class CustomerReportDialog extends StatelessWidget {
           '   📦 Qty: $qtyStr @ ₹${item.unitPrice.toStringAsFixed(2)} = ₹${item.totalPrice.toStringAsFixed(2)}',
         );
         buffer.writeln(
-          '   💳 Status: ${item.statusLabel} (Paid: ₹${item.amountPaid.toStringAsFixed(2)} | Due: ₹${item.remainingAmount.toStringAsFixed(2)})',
+          '   💳 Status: ${item.statusLabel} (Paid: ₹${item.amountPaid.toStringAsFixed(2)} | Net Due: ₹${item.remainingAmount.toStringAsFixed(2)})',
         );
         buffer.writeln('');
       }
     }
 
     buffer.writeln('========================================');
-    buffer.writeln('Thank you for your business!');
+    buffer.writeln('Please clear your pending dues soon. Thank you!');
     return buffer.toString();
   }
 
   @override
   Widget build(BuildContext context) {
-    final goods = repository.getGoodsForCustomer(customer.id);
+    final allGoods = repository.getGoodsForCustomer(customer.id);
+    final dueGoods = allGoods.where((g) => g.remainingAmount > 0.001).toList();
     final totalBorrowed = repository.getCustomerTotalBorrowed(customer.id);
     final totalPaid = repository.getCustomerTotalPaid(customer.id);
     final pendingBalance = repository.getCustomerPendingBalance(customer.id);
     final reportText = _buildFormattedTextReport(
-      goods,
+      dueGoods,
       totalBorrowed,
       totalPaid,
       pendingBalance,
@@ -154,7 +155,7 @@ class CustomerReportDialog extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Account Statement Report',
+                        'Pending Dues Report',
                         style: GoogleFonts.outfit(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -288,7 +289,7 @@ class CustomerReportDialog extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Borrowed Goods (${goods.length} Items)',
+                          'Outstanding Items (${dueGoods.length} Items)',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
@@ -300,15 +301,16 @@ class CustomerReportDialog extends StatelessWidget {
                     const SizedBox(height: 10),
 
                     // Itemized Table List
-                    if (goods.isEmpty)
+                    if (dueGoods.isEmpty)
                       Container(
                         padding: const EdgeInsets.all(24),
                         alignment: Alignment.center,
                         child: const Text(
-                          'No borrowed goods logged for this customer.',
+                          'No pending dues! All borrowed items are fully settled.',
                           style: TextStyle(
-                            color: AppTheme.textMuted,
+                            color: AppTheme.paidText,
                             fontSize: 14,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       )
@@ -316,11 +318,11 @@ class CustomerReportDialog extends StatelessWidget {
                       ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: goods.length,
+                        itemCount: dueGoods.length,
                         separatorBuilder:
                             (context, index) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
-                          final item = goods[index];
+                          final item = dueGoods[index];
                           final qtyStr = item.quantity.toStringAsFixed(
                             item.quantity.truncateToDouble() == item.quantity
                                 ? 0
