@@ -94,36 +94,36 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
     Customer customer, {
     bool isLegacyMode = false,
   }) async {
-    final result = await showDialog<Map<String, dynamic>>(
+    final result = await showDialog(
       context: context,
       builder:
           (context) => AddGoodsDialog(
             customerName: customer.name,
             isLegacyMode: isLegacyMode,
+            onSaveItem: (itemData) async {
+              await widget.repository.addGoodItem(
+                customerId: customer.id,
+                name: itemData['name'],
+                category: itemData['category'],
+                quantity: itemData['quantity'],
+                unitPrice: itemData['unitPrice'],
+                date: itemData['date'],
+              );
+            },
           ),
     );
 
-    if (result != null) {
-      await widget.repository.addGoodItem(
-        customerId: customer.id,
-        name: result['name'],
-        category: result['category'],
-        quantity: result['quantity'],
-        unitPrice: result['unitPrice'],
-        date: result['date'],
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isLegacyMode
-                  ? 'Added paper book record "${result['name']}" for ${customer.name}'
-                  : 'Added "${result['name']}" for ${customer.name}',
-            ),
-            backgroundColor: isLegacyMode ? Colors.purple : AppTheme.primary,
+    if (result != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isLegacyMode
+                ? 'Recorded paper book entries for ${customer.name}'
+                : 'Recorded borrowed goods for ${customer.name}',
           ),
-        );
-      }
+          backgroundColor: isLegacyMode ? Colors.purple : AppTheme.primary,
+        ),
+      );
     }
   }
 

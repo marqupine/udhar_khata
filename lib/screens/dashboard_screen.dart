@@ -151,27 +151,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _openAddGoodsDialog(Customer customer) async {
-    final result = await showDialog<Map<String, dynamic>>(
+    final result = await showDialog(
       context: context,
-      builder: (context) => AddGoodsDialog(customerName: customer.name),
+      builder:
+          (context) => AddGoodsDialog(
+            customerName: customer.name,
+            onSaveItem: (itemData) async {
+              await widget.repository.addGoodItem(
+                customerId: customer.id,
+                name: itemData['name'],
+                category: itemData['category'],
+                quantity: itemData['quantity'],
+                unitPrice: itemData['unitPrice'],
+                date: itemData['date'],
+              );
+            },
+          ),
     );
 
-    if (result != null) {
-      await widget.repository.addGoodItem(
-        customerId: customer.id,
-        name: result['name'],
-        category: result['category'],
-        quantity: result['quantity'],
-        unitPrice: result['unitPrice'],
+    if (result != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Recorded borrowed goods for ${customer.name}'),
+          backgroundColor: AppTheme.saffronPrimary,
+        ),
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Added "${result['name']}" for ${customer.name}'),
-            backgroundColor: AppTheme.saffronPrimary,
-          ),
-        );
-      }
     }
   }
 
