@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_constants.dart';
 import '../models/models.dart';
 import '../services/udhar_repository.dart';
@@ -69,26 +70,80 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
   Future<void> _shareThermalReceiptPng(double pendingBalance) async {
     setState(() => _isSharing = true);
     try {
-      final boundary =
+      // Wait briefly for layout/paint to stabilize
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      RenderRepaintBoundary? boundary =
           _repaintKey.currentContext?.findRenderObject()
               as RenderRepaintBoundary?;
-      if (boundary == null) return;
+
+      if (boundary == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not capture receipt preview. Please try again.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (boundary.debugNeedsPaint) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
 
       final image = await boundary.toImage(pixelRatio: 3.0);
       final byteData = await image.toByteData(format: ImageByteFormat.png);
-      if (byteData == null) return;
+      if (byteData == null) {
+        throw Exception('Failed to encode receipt image to PNG format.');
+      }
       final pngBytes = byteData.buffer.asUint8List();
 
       final tempDir = await getTemporaryDirectory();
-      final file = File(
-        '${tempDir.path}/udhar_khata_statement_${widget.customer.id}.png',
-      );
-      await file.writeAsBytes(pngBytes);
+      final filePath = '${tempDir.path}/udhar_khata_${widget.customer.id}_receipt.png';
+      final file = File(filePath);
+      await file.writeAsBytes(pngBytes, flush: true);
 
-      await Share.shareXFiles([
-        XFile(file.path),
-      ], text: 'Hello ${widget.customer.name}, here is your ${AppConstants.appName} account statement receipt. Total Due: ₹${pendingBalance.toStringAsFixed(2)}. Best wishes!');
+      final messageText =
+          'Hello ${widget.customer.name}, here is your ${AppConstants.appName} account statement receipt.\nNet Due Balance: ₹${pendingBalance.toStringAsFixed(2)}.\nBest wishes!';
+
+      // 1. Trigger system share (shares PNG image with caption)
+      final shareResult = await Share.shareXFiles(
+        [XFile(filePath)],
+        text: messageText,
+        subject: '${AppConstants.appName} Statement - ${widget.customer.name}',
+      );
+
+      debugPrint('Share result status: ${shareResult.status}');
+
+      // 2. Direct WhatsApp launcher fallback if phone number is present
+      String cleanPhone = widget.customer.phoneNumber.replaceAll(RegExp(r'\D'), '');
+      if (cleanPhone.length == 10) {
+        cleanPhone = '91$cleanPhone'; // Default to India country code
+      }
+
+      if (cleanPhone.isNotEmpty) {
+        final waUrl = Uri.parse(
+          'https://wa.me/$cleanPhone?text=${Uri.encodeComponent(messageText)}',
+        );
+        if (await canLaunchUrl(waUrl)) {
+          await launchUrl(waUrl, mode: LaunchMode.externalApplication);
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Receipt PNG saved! Opening WhatsApp for ${widget.customer.name}...',
+            ),
+            backgroundColor: const Color(0xFF25D366),
+          ),
+        );
+      }
     } catch (e) {
+      debugPrint('Error sharing receipt PNG: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
