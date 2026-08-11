@@ -6,6 +6,8 @@ import '../theme/app_theme.dart';
 import '../widgets/add_goods_dialog.dart';
 import '../widgets/record_payment_dialog.dart';
 
+enum GoodsFilter { defaultFilter, newest, oldest, range }
+
 class CustomerDetailScreen extends StatefulWidget {
   final String customerId;
   final UdharRepository repository;
@@ -22,6 +24,49 @@ class CustomerDetailScreen extends StatefulWidget {
 
 class _CustomerDetailScreenState extends State<CustomerDetailScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  GoodsFilter _goodsFilter = GoodsFilter.defaultFilter;
+  DateTimeRange? _selectedDateRange;
+
+  List<GoodItem> _getFilteredGoods(List<GoodItem> allGoods) {
+    List<GoodItem> list;
+    switch (_goodsFilter) {
+      case GoodsFilter.defaultFilter:
+        list = allGoods.where((g) => !g.isPaid).toList();
+        list.sort((a, b) => b.date.compareTo(a.date));
+        break;
+      case GoodsFilter.newest:
+        list = List.from(allGoods);
+        list.sort((a, b) => b.date.compareTo(a.date));
+        break;
+      case GoodsFilter.oldest:
+        list = List.from(allGoods);
+        list.sort((a, b) => a.date.compareTo(b.date));
+        break;
+      case GoodsFilter.range:
+        if (_selectedDateRange != null) {
+          final start = DateTime(
+            _selectedDateRange!.start.year,
+            _selectedDateRange!.start.month,
+            _selectedDateRange!.start.day,
+            0, 0, 0,
+          );
+          final end = DateTime(
+            _selectedDateRange!.end.year,
+            _selectedDateRange!.end.month,
+            _selectedDateRange!.end.day,
+            23, 59, 59, 999,
+          );
+          list = allGoods
+              .where((g) => !g.date.isBefore(start) && !g.date.isAfter(end))
+              .toList();
+        } else {
+          list = List.from(allGoods);
+        }
+        list.sort((a, b) => b.date.compareTo(a.date));
+        break;
+    }
+    return list;
+  }
 
   @override
   void initState() {
@@ -186,6 +231,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
         final pendingBalance = widget.repository.getCustomerPendingBalance(customer.id);
 
         final goods = widget.repository.getGoodsForCustomer(customer.id);
+        final filteredGoods = _getFilteredGoods(goods);
         final payments = widget.repository.getPaymentsForCustomer(customer.id);
 
         return Scaffold(
@@ -455,7 +501,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                 unselectedLabelColor: AppTheme.textSecondary,
                 labelStyle: const TextStyle(fontWeight: FontWeight.bold),
                 tabs: [
-                  Tab(text: 'Borrowed Goods (${goods.length})'),
+                  Tab(text: 'Borrowed Goods (${filteredGoods.length})'),
                   Tab(text: 'Payment Receipts (${payments.length})'),
                 ],
               ),
@@ -465,30 +511,202 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    // Tab 1: Goods List
-                    goods.isEmpty
-                        ? const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                    // Tab 1: Goods List with Filters
+                    Column(
+                      children: [
+                        // Filter Bar
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
                               children: [
-                                Icon(Icons.shopping_bag_outlined, size: 48, color: AppTheme.textMuted),
-                                SizedBox(height: 12),
-                                Text(
-                                  'No goods added yet.',
-                                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 15),
+                                FilterChip(
+                                  showCheckmark: false,
+                                  label: const Text('Default (Unpaid)'),
+                                  selected: _goodsFilter == GoodsFilter.defaultFilter,
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      setState(() {
+                                        _goodsFilter = GoodsFilter.defaultFilter;
+                                      });
+                                    }
+                                  },
+                                  selectedColor: AppTheme.saffronPrimary.withValues(alpha: 0.2),
+                                  side: BorderSide(
+                                    color: _goodsFilter == GoodsFilter.defaultFilter
+                                        ? AppTheme.saffronPrimary
+                                        : AppTheme.cardBorder,
+                                  ),
+                                  labelStyle: TextStyle(
+                                    fontWeight: _goodsFilter == GoodsFilter.defaultFilter
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: _goodsFilter == GoodsFilter.defaultFilter
+                                        ? AppTheme.saffronDark
+                                        : AppTheme.textSecondary,
+                                    fontSize: 12,
+                                  ),
                                 ),
-                                Text(
-                                  'Tap "+ Add Goods" above to log borrowed items.',
-                                  style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                                const SizedBox(width: 8),
+                                FilterChip(
+                                  showCheckmark: false,
+                                  label: const Text('Newest'),
+                                  selected: _goodsFilter == GoodsFilter.newest,
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      setState(() {
+                                        _goodsFilter = GoodsFilter.newest;
+                                      });
+                                    }
+                                  },
+                                  selectedColor: AppTheme.saffronPrimary.withValues(alpha: 0.2),
+                                  side: BorderSide(
+                                    color: _goodsFilter == GoodsFilter.newest
+                                        ? AppTheme.saffronPrimary
+                                        : AppTheme.cardBorder,
+                                  ),
+                                  labelStyle: TextStyle(
+                                    fontWeight: _goodsFilter == GoodsFilter.newest
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: _goodsFilter == GoodsFilter.newest
+                                        ? AppTheme.saffronDark
+                                        : AppTheme.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                FilterChip(
+                                  showCheckmark: false,
+                                  label: const Text('Oldest'),
+                                  selected: _goodsFilter == GoodsFilter.oldest,
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      setState(() {
+                                        _goodsFilter = GoodsFilter.oldest;
+                                      });
+                                    }
+                                  },
+                                  selectedColor: AppTheme.saffronPrimary.withValues(alpha: 0.2),
+                                  side: BorderSide(
+                                    color: _goodsFilter == GoodsFilter.oldest
+                                        ? AppTheme.saffronPrimary
+                                        : AppTheme.cardBorder,
+                                  ),
+                                  labelStyle: TextStyle(
+                                    fontWeight: _goodsFilter == GoodsFilter.oldest
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: _goodsFilter == GoodsFilter.oldest
+                                        ? AppTheme.saffronDark
+                                        : AppTheme.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                FilterChip(
+                                  showCheckmark: false,
+                                  avatar: Icon(
+                                    Icons.date_range_outlined,
+                                    size: 15,
+                                    color: _goodsFilter == GoodsFilter.range
+                                        ? AppTheme.saffronDark
+                                        : AppTheme.textSecondary,
+                                  ),
+                                  label: Text(
+                                    _goodsFilter == GoodsFilter.range && _selectedDateRange != null
+                                        ? '${_selectedDateRange!.start.day}/${_selectedDateRange!.start.month}/${_selectedDateRange!.start.year} - ${_selectedDateRange!.end.day}/${_selectedDateRange!.end.month}/${_selectedDateRange!.end.year}'
+                                        : 'Range',
+                                  ),
+                                  selected: _goodsFilter == GoodsFilter.range,
+                                  onSelected: (selected) async {
+                                    final picked = await showDateRangePicker(
+                                      context: context,
+                                      firstDate: DateTime(2000),
+                                      lastDate: DateTime.now().add(const Duration(days: 1)),
+                                      initialDateRange: _selectedDateRange ??
+                                          DateTimeRange(
+                                            start: DateTime.now().subtract(const Duration(days: 30)),
+                                            end: DateTime.now(),
+                                          ),
+                                      builder: (context, child) {
+                                        return Theme(
+                                          data: Theme.of(context).copyWith(
+                                            colorScheme: ColorScheme.light(
+                                              primary: AppTheme.saffronPrimary,
+                                              onPrimary: Colors.white,
+                                              surface: AppTheme.surface,
+                                            ),
+                                          ),
+                                          child: child!,
+                                        );
+                                      },
+                                    );
+                                    if (picked != null) {
+                                      setState(() {
+                                        _selectedDateRange = picked;
+                                        _goodsFilter = GoodsFilter.range;
+                                      });
+                                    } else if (_selectedDateRange != null) {
+                                      setState(() {
+                                        _goodsFilter = GoodsFilter.range;
+                                      });
+                                    }
+                                  },
+                                  selectedColor: AppTheme.saffronPrimary.withValues(alpha: 0.2),
+                                  side: BorderSide(
+                                    color: _goodsFilter == GoodsFilter.range
+                                        ? AppTheme.saffronPrimary
+                                        : AppTheme.cardBorder,
+                                  ),
+                                  labelStyle: TextStyle(
+                                    fontWeight: _goodsFilter == GoodsFilter.range
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: _goodsFilter == GoodsFilter.range
+                                        ? AppTheme.saffronDark
+                                        : AppTheme.textSecondary,
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ],
                             ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: goods.length,
-                            itemBuilder: (context, index) {
-                              final item = goods[index];
+                          ),
+                        ),
+
+                        // Goods List
+                        Expanded(
+                          child: filteredGoods.isEmpty
+                              ? Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.shopping_bag_outlined, size: 48, color: AppTheme.textMuted),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        _goodsFilter == GoodsFilter.defaultFilter && goods.isNotEmpty
+                                            ? 'No unpaid goods found.'
+                                            : _goodsFilter == GoodsFilter.range && _selectedDateRange != null
+                                                ? 'No goods in selected range.'
+                                                : 'No goods added yet.',
+                                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 15, fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _goodsFilter == GoodsFilter.defaultFilter && goods.isNotEmpty
+                                            ? 'All borrowed items have been fully settled!'
+                                            : 'Tap "+ Add Goods" above to log borrowed items.',
+                                        style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : ListView.builder(
+                                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                                  itemCount: filteredGoods.length,
+                                  itemBuilder: (context, index) {
+                                    final item = filteredGoods[index];
                               final progress = item.totalPrice > 0 ? (item.amountPaid / item.totalPrice).clamp(0.0, 1.0) : 1.0;
 
                               Color statusBg;
@@ -677,8 +895,11 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                                   ),
                                 ),
                               );
-                            },
-                          ),
+                              },
+                            ),
+                        ),
+                      ],
+                    ),
 
                     // Tab 2: Payment Receipts History
                     payments.isEmpty
