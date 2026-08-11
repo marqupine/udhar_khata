@@ -8,4 +8,3 @@ class AppConstants {
   /// Central Application Icon configuration.
   static const IconData appIcon = Icons.account_balance_wallet_rounded;
 }
-
