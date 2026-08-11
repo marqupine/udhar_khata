@@ -114,13 +114,16 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
 
       try {
         // ignore: deprecated_member_use
-        await Share.shareXFiles(
+        Share.shareXFiles(
           [XFile(filePath)],
           text: messageText,
           subject: '${AppConstants.appName} Consolidated Statement - ${widget.customer.name}',
-        );
+        ).catchError((shareErr) {
+          debugPrint('System share plugin exception: $shareErr');
+          return const ShareResult('', ShareResultStatus.unavailable);
+        });
       } catch (shareErr) {
-        debugPrint('System share plugin exception: $shareErr');
+        debugPrint('System share error: $shareErr');
       }
 
       String cleanPhone = widget.customer.phoneNumber.replaceAll(
