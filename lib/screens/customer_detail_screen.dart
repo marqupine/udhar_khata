@@ -1313,7 +1313,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                                           ),
                                         ),
                                         confirmDismiss: (direction) async {
-                                          return await showDialog<bool>(
+                                          final confirmed = await showDialog<bool>(
                                             context: context,
                                             builder:
                                                 (context) => AlertDialog(
@@ -1365,6 +1365,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                                                   ],
                                                 ),
                                           );
+                                          return confirmed ?? false;
                                         },
                                         onDismissed: (direction) async {
                                           await widget.repository.moveToBin(
