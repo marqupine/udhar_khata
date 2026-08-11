@@ -226,41 +226,41 @@ class UdharRepository extends ChangeNotifier {
   }
 
   List<GoodItem> getGoodsForCustomer(String customerId) {
-    final list = _goods.where((g) => g.customerId == customerId && !g.isDeleted).toList();
+    final list = _goods.where((g) => g.customerId == customerId && g.isDeleted != true).toList();
     list.sort((a, b) => b.date.compareTo(a.date)); // newest first for display
     return list;
   }
 
   double getCustomerTotalBorrowed(String customerId) {
     return _goods
-        .where((g) => g.customerId == customerId && !g.isDeleted)
+        .where((g) => g.customerId == customerId && g.isDeleted != true)
         .fold(0.0, (sum, g) => sum + g.totalPrice);
   }
 
   double getCustomerTotalPaid(String customerId) {
     return _goods
-        .where((g) => g.customerId == customerId && !g.isDeleted)
+        .where((g) => g.customerId == customerId && g.isDeleted != true)
         .fold(0.0, (sum, g) => sum + g.amountPaid);
   }
 
   double getCustomerPendingBalance(String customerId) {
     return _goods
-        .where((g) => g.customerId == customerId && !g.isDeleted)
+        .where((g) => g.customerId == customerId && g.isDeleted != true)
         .fold(0.0, (sum, g) => sum + g.remainingAmount);
   }
 
   // Global Financial Metrics
   double get grandTotalPending {
-    return _goods.where((g) => !g.isDeleted).fold(0.0, (sum, g) => sum + g.remainingAmount);
+    return _goods.where((g) => g.isDeleted != true).fold(0.0, (sum, g) => sum + g.remainingAmount);
   }
 
   double get grandTotalSettled {
-    return _goods.where((g) => !g.isDeleted).fold(0.0, (sum, g) => sum + g.amountPaid);
+    return _goods.where((g) => g.isDeleted != true).fold(0.0, (sum, g) => sum + g.amountPaid);
   }
 
   int get activeBorrowersCount {
     final customerIdsWithBalance = _goods
-        .where((g) => !g.isDeleted && g.remainingAmount > 0.001)
+        .where((g) => g.isDeleted != true && g.remainingAmount > 0.001)
         .map((g) => g.customerId)
         .toSet();
     return customerIdsWithBalance.length;
@@ -331,7 +331,7 @@ class UdharRepository extends ChangeNotifier {
 
   /// Returns deleted goods in the Recycle Bin for a customer.
   List<GoodItem> getRecycleBinGoods(String customerId) {
-    final list = _goods.where((g) => g.customerId == customerId && g.isDeleted).toList();
+    final list = _goods.where((g) => g.customerId == customerId && g.isDeleted == true).toList();
     list.sort((a, b) => (b.deletedAt ?? b.date).compareTo(a.deletedAt ?? a.date));
     return list;
   }
@@ -340,7 +340,7 @@ class UdharRepository extends ChangeNotifier {
   Future<int> autoPurgeRecycleBin({int hoursThreshold = 72}) async {
     final now = DateTime.now();
     final expired = _goods.where((g) {
-      if (!g.isDeleted || g.deletedAt == null) return false;
+      if (g.isDeleted != true || g.deletedAt == null) return false;
       return now.difference(g.deletedAt!).inHours >= hoursThreshold;
     }).toList();
 
@@ -365,7 +365,7 @@ class UdharRepository extends ChangeNotifier {
     if (paymentAmount <= 0) return [];
 
     final pendingGoods = _goods
-        .where((g) => g.customerId == customerId && !g.isDeleted && g.remainingAmount > 0.001)
+        .where((g) => g.customerId == customerId && g.isDeleted != true && g.remainingAmount > 0.001)
         .toList();
     pendingGoods.sort((a, b) => a.date.compareTo(b.date));
 

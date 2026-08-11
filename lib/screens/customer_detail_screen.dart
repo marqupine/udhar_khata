@@ -283,7 +283,10 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                         ],
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, color: AppTheme.textSecondary),
+                        icon: const Icon(
+                          Icons.close,
+                          color: AppTheme.textSecondary,
+                        ),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                     ],
@@ -297,173 +300,216 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                   const Divider(height: 1),
                   const SizedBox(height: 12),
                   Expanded(
-                    child: binGoods.isEmpty
-                        ? const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.delete_sweep_outlined,
-                                  size: 48,
-                                  color: AppTheme.textMuted,
-                                ),
-                                SizedBox(height: 12),
-                                Text(
-                                  'Recycle Bin is empty',
-                                  style: TextStyle(
-                                    color: AppTheme.textSecondary,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
+                    child:
+                        binGoods.isEmpty
+                            ? const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.delete_sweep_outlined,
+                                    size: 48,
+                                    color: AppTheme.textMuted,
                                   ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: binGoods.length,
-                            itemBuilder: (context, index) {
-                              final item = binGoods[index];
-                              final deletedAt = item.deletedAt ?? item.date;
-                              final hoursLeft = (72 - now.difference(deletedAt).inHours).clamp(0, 72);
+                                  SizedBox(height: 12),
+                                  Text(
+                                    'Recycle Bin is empty',
+                                    style: TextStyle(
+                                      color: AppTheme.textSecondary,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                            : ListView.builder(
+                              itemCount: binGoods.length,
+                              itemBuilder: (context, index) {
+                                final item = binGoods[index];
+                                final deletedAt = item.deletedAt ?? item.date;
+                                final hoursLeft = (72 -
+                                        now.difference(deletedAt).inHours)
+                                    .clamp(0, 72);
 
-                              return Card(
-                                margin: const EdgeInsets.symmetric(vertical: 6),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              item.name,
+                                return Card(
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 6,
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                item.name,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 15,
+                                                  color: AppTheme.textPrimary,
+                                                ),
+                                              ),
+                                            ),
+                                            Text(
+                                              '₹${item.totalPrice.toStringAsFixed(2)}',
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 15,
-                                                color: AppTheme.textPrimary,
+                                                color: AppTheme.pendingText,
                                               ),
                                             ),
-                                          ),
-                                          Text(
-                                            '₹${item.totalPrice.toStringAsFixed(2)}',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 15,
-                                              color: AppTheme.pendingText,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.timer_outlined,
-                                            size: 12,
-                                            color: AppTheme.saffronDark,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'Expires in ${hoursLeft}h',
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.timer_outlined,
+                                              size: 12,
                                               color: AppTheme.saffronDark,
                                             ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            '• Deleted ${_formatDateTime(deletedAt)}',
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color: AppTheme.textMuted,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.end,
-                                        children: [
-                                          TextButton.icon(
-                                            icon: const Icon(
-                                              Icons.restore_from_trash_outlined,
-                                              size: 16,
-                                            ),
-                                            label: const Text(
-                                              'Restore',
-                                              style: TextStyle(
-                                                fontSize: 12,
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'Expires in ${hoursLeft}h',
+                                              style: const TextStyle(
+                                                fontSize: 11,
                                                 fontWeight: FontWeight.bold,
+                                                color: AppTheme.saffronDark,
                                               ),
                                             ),
-                                            style: TextButton.styleFrom(
-                                              foregroundColor: AppTheme.primary,
-                                            ),
-                                            onPressed: () async {
-                                              await widget.repository.restoreFromBin(item.id);
-                                              if (context.mounted) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text('Restored "${item.name}" back to borrowed goods'),
-                                                    backgroundColor: AppTheme.primary,
-                                                  ),
-                                                );
-                                              }
-                                            },
-                                          ),
-                                          const SizedBox(width: 8),
-                                          TextButton.icon(
-                                            icon: const Icon(
-                                              Icons.delete_forever_outlined,
-                                              size: 16,
-                                            ),
-                                            label: const Text(
-                                              'Delete',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              '• Deleted ${_formatDateTime(deletedAt)}',
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: AppTheme.textMuted,
                                               ),
                                             ),
-                                            style: TextButton.styleFrom(
-                                              foregroundColor: AppTheme.pendingText,
-                                            ),
-                                            onPressed: () async {
-                                              final confirm = await showDialog<bool>(
-                                                context: context,
-                                                builder: (context) => AlertDialog(
-                                                  title: const Text('Delete Permanently?'),
-                                                  content: Text('Permanently remove "${item.name}"? This action cannot be undone.'),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () => Navigator.of(context).pop(false),
-                                                      child: const Text('Cancel'),
-                                                    ),
-                                                    ElevatedButton(
-                                                      style: ElevatedButton.styleFrom(
-                                                        backgroundColor: AppTheme.pendingText,
-                                                      ),
-                                                      onPressed: () => Navigator.of(context).pop(true),
-                                                      child: const Text('Delete Permanently'),
-                                                    ),
-                                                  ],
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.end,
+                                          children: [
+                                            TextButton.icon(
+                                              icon: const Icon(
+                                                Icons
+                                                    .restore_from_trash_outlined,
+                                                size: 16,
+                                              ),
+                                              label: const Text(
+                                                'Restore',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
                                                 ),
-                                              );
-                                              if (confirm == true) {
-                                                await widget.repository.permanentlyDeleteGood(item.id);
-                                              }
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                              ),
+                                              style: TextButton.styleFrom(
+                                                foregroundColor:
+                                                    AppTheme.primary,
+                                              ),
+                                              onPressed: () async {
+                                                await widget.repository
+                                                    .restoreFromBin(item.id);
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'Restored "${item.name}" back to borrowed goods',
+                                                      ),
+                                                      backgroundColor:
+                                                          AppTheme.primary,
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                            const SizedBox(width: 8),
+                                            TextButton.icon(
+                                              icon: const Icon(
+                                                Icons.delete_forever_outlined,
+                                                size: 16,
+                                              ),
+                                              label: const Text(
+                                                'Delete',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              style: TextButton.styleFrom(
+                                                foregroundColor:
+                                                    AppTheme.pendingText,
+                                              ),
+                                              onPressed: () async {
+                                                final confirm = await showDialog<
+                                                  bool
+                                                >(
+                                                  context: context,
+                                                  builder:
+                                                      (context) => AlertDialog(
+                                                        title: const Text(
+                                                          'Delete Permanently?',
+                                                        ),
+                                                        content: Text(
+                                                          'Permanently remove "${item.name}"? This action cannot be undone.',
+                                                        ),
+                                                        actions: [
+                                                          TextButton(
+                                                            onPressed:
+                                                                () =>
+                                                                    Navigator.of(
+                                                                      context,
+                                                                    ).pop(
+                                                                      false,
+                                                                    ),
+                                                            child: const Text(
+                                                              'Cancel',
+                                                            ),
+                                                          ),
+                                                          ElevatedButton(
+                                                            style: ElevatedButton.styleFrom(
+                                                              backgroundColor:
+                                                                  AppTheme
+                                                                      .pendingText,
+                                                            ),
+                                                            onPressed:
+                                                                () =>
+                                                                    Navigator.of(
+                                                                      context,
+                                                                    ).pop(true),
+                                                            child: const Text(
+                                                              'Delete Permanently',
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                );
+                                                if (confirm == true) {
+                                                  await widget.repository
+                                                      .permanentlyDeleteGood(
+                                                        item.id,
+                                                      );
+                                                }
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                          ),
+                                );
+                              },
+                            ),
                   ),
                 ],
               ),
@@ -1285,8 +1331,9 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                                           ),
                                           decoration: BoxDecoration(
                                             color: AppTheme.pendingBg,
-                                            borderRadius:
-                                                BorderRadius.circular(18),
+                                            borderRadius: BorderRadius.circular(
+                                              18,
+                                            ),
                                             border: Border.all(
                                               color: AppTheme.pendingText
                                                   .withValues(alpha: 0.3),
@@ -1313,7 +1360,9 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                                           ),
                                         ),
                                         confirmDismiss: (direction) async {
-                                          final confirmed = await showDialog<bool>(
+                                          final confirmed = await showDialog<
+                                            bool
+                                          >(
                                             context: context,
                                             builder:
                                                 (context) => AlertDialog(
@@ -1332,10 +1381,9 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                                                   actions: [
                                                     TextButton(
                                                       onPressed:
-                                                          () =>
-                                                              Navigator.of(
-                                                                context,
-                                                              ).pop(false),
+                                                          () => Navigator.of(
+                                                            context,
+                                                          ).pop(false),
                                                       child: const Text(
                                                         'Cancel',
                                                         style: TextStyle(
@@ -1347,17 +1395,15 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                                                     ),
                                                     ElevatedButton(
                                                       style:
-                                                          ElevatedButton
-                                                              .styleFrom(
-                                                                backgroundColor:
-                                                                    AppTheme
-                                                                        .pendingText,
-                                                              ),
+                                                          ElevatedButton.styleFrom(
+                                                            backgroundColor:
+                                                                AppTheme
+                                                                    .pendingText,
+                                                          ),
                                                       onPressed:
-                                                          () =>
-                                                              Navigator.of(
-                                                                context,
-                                                              ).pop(true),
+                                                          () => Navigator.of(
+                                                            context,
+                                                          ).pop(true),
                                                       child: const Text(
                                                         'Move to Bin',
                                                       ),
@@ -1400,291 +1446,299 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                                           }
                                         },
                                         child: Card(
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(14.0),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Container(
-                                                    padding:
-                                                        const EdgeInsets.all(8),
-                                                    decoration: BoxDecoration(
-                                                      color: AppTheme.primary
-                                                          .withValues(
-                                                            alpha: 0.08,
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(14.0),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Container(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                            8,
                                                           ),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            10,
-                                                          ),
-                                                    ),
-                                                    child: Icon(
-                                                      _getCategoryIcon(
-                                                        item.category,
+                                                      decoration: BoxDecoration(
+                                                        color: AppTheme.primary
+                                                            .withValues(
+                                                              alpha: 0.08,
+                                                            ),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              10,
+                                                            ),
                                                       ),
-                                                      color: AppTheme.primary,
-                                                      size: 20,
+                                                      child: Icon(
+                                                        _getCategoryIcon(
+                                                          item.category,
+                                                        ),
+                                                        color: AppTheme.primary,
+                                                        size: 20,
+                                                      ),
                                                     ),
-                                                  ),
-                                                  const SizedBox(width: 12),
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        Text(
-                                                          item.name,
-                                                          style: const TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            fontSize: 16,
-                                                            color:
-                                                                AppTheme
-                                                                    .textPrimary,
-                                                          ),
-                                                        ),
-                                                        Text(
-                                                          '${item.category} • ${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 1)} qty @ ₹${item.unitPrice.toStringAsFixed(2)}',
-                                                          style: const TextStyle(
-                                                            fontSize: 12,
-                                                            color:
-                                                                AppTheme
-                                                                    .textSecondary,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 3,
-                                                        ),
-                                                        Row(
-                                                          children: [
-                                                            const Icon(
-                                                              Icons
-                                                                  .access_time_rounded,
-                                                              size: 12,
+                                                    const SizedBox(width: 12),
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          Text(
+                                                            item.name,
+                                                            style: const TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              fontSize: 16,
                                                               color:
                                                                   AppTheme
-                                                                      .textMuted,
+                                                                      .textPrimary,
                                                             ),
-                                                            const SizedBox(
-                                                              width: 3,
+                                                          ),
+                                                          Text(
+                                                            '${item.category} • ${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 1)} qty @ ₹${item.unitPrice.toStringAsFixed(2)}',
+                                                            style: const TextStyle(
+                                                              fontSize: 12,
+                                                              color:
+                                                                  AppTheme
+                                                                      .textSecondary,
                                                             ),
-                                                            Text(
-                                                              'Borrowed: ${_formatDateTime(item.date)}',
-                                                              style: const TextStyle(
-                                                                fontSize: 11,
+                                                          ),
+                                                          const SizedBox(
+                                                            height: 3,
+                                                          ),
+                                                          Row(
+                                                            children: [
+                                                              const Icon(
+                                                                Icons
+                                                                    .access_time_rounded,
+                                                                size: 12,
                                                                 color:
                                                                     AppTheme
                                                                         .textMuted,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w500,
                                                               ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  Container(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 8,
-                                                          vertical: 4,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color: statusBg,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            8,
+                                                              const SizedBox(
+                                                                width: 3,
+                                                              ),
+                                                              Text(
+                                                                'Borrowed: ${_formatDateTime(item.date)}',
+                                                                style: const TextStyle(
+                                                                  fontSize: 11,
+                                                                  color:
+                                                                      AppTheme
+                                                                          .textMuted,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                ),
+                                                              ),
+                                                            ],
                                                           ),
-                                                    ),
-                                                    child: Text(
-                                                      item.statusLabel,
-                                                      style: TextStyle(
-                                                        fontSize: 11,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color: statusText,
+                                                        ],
                                                       ),
                                                     ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 12),
-
-                                              // Progress bar & settlement info
-                                              ClipRRect(
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                                child: LinearProgressIndicator(
-                                                  value: progress,
-                                                  backgroundColor:
-                                                      AppTheme.cardBorder,
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation<
-                                                        Color
-                                                      >(
-                                                        item.isPaid
-                                                            ? AppTheme.paidText
-                                                            : item
-                                                                .isPartiallyPaid
-                                                            ? AppTheme
-                                                                .partialText
-                                                            : AppTheme
-                                                                .pendingText,
+                                                    Container(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 4,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        color: statusBg,
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              8,
+                                                            ),
                                                       ),
-                                                  minHeight: 6,
+                                                      child: Text(
+                                                        item.statusLabel,
+                                                        style: TextStyle(
+                                                          fontSize: 11,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: statusText,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                              ),
-                                              const SizedBox(height: 8),
+                                                const SizedBox(height: 12),
 
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    'Paid: ₹${item.amountPaid.toStringAsFixed(2)} / ₹${item.totalPrice.toStringAsFixed(2)}',
-                                                    style: const TextStyle(
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                      color:
-                                                          AppTheme
-                                                              .textSecondary,
-                                                    ),
-                                                  ),
-                                                  Text(
-                                                    item.isPaid
-                                                        ? 'Settled'
-                                                        : 'Pending: ₹${item.remainingAmount.toStringAsFixed(2)}',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color:
+                                                // Progress bar & settlement info
+                                                ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                  child: LinearProgressIndicator(
+                                                    value: progress,
+                                                    backgroundColor:
+                                                        AppTheme.cardBorder,
+                                                    valueColor:
+                                                        AlwaysStoppedAnimation<
+                                                          Color
+                                                        >(
                                                           item.isPaid
                                                               ? AppTheme
                                                                   .paidText
+                                                              : item
+                                                                  .isPartiallyPaid
+                                                              ? AppTheme
+                                                                  .partialText
                                                               : AppTheme
                                                                   .pendingText,
-                                                    ),
+                                                        ),
+                                                    minHeight: 6,
                                                   ),
-                                                ],
-                                              ),
-                                              if (!item.isPaid ||
-                                                  item.canBeEdited) ...[
+                                                ),
                                                 const SizedBox(height: 8),
+
                                                 Row(
                                                   mainAxisAlignment:
-                                                      MainAxisAlignment.end,
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
                                                   children: [
-                                                    if (item.canBeEdited) ...[
-                                                      TextButton.icon(
-                                                        style: TextButton.styleFrom(
-                                                          padding:
-                                                              const EdgeInsets.symmetric(
-                                                                horizontal: 8,
-                                                                vertical: 4,
-                                                              ),
-                                                          minimumSize:
-                                                              Size.zero,
-                                                          tapTargetSize:
-                                                              MaterialTapTargetSize
-                                                                  .shrinkWrap,
-                                                          foregroundColor:
-                                                              Colors.blue,
-                                                        ),
-                                                        icon: const Icon(
-                                                          Icons.edit_outlined,
-                                                          size: 14,
-                                                        ),
-                                                        label: const Text(
-                                                          'Edit Record',
-                                                          style: TextStyle(
-                                                            fontSize: 12,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                          ),
-                                                        ),
-                                                        onPressed:
-                                                            () =>
-                                                                _openEditGoodsDialog(
-                                                                  customer,
-                                                                  item,
-                                                                ),
+                                                    Text(
+                                                      'Paid: ₹${item.amountPaid.toStringAsFixed(2)} / ₹${item.totalPrice.toStringAsFixed(2)}',
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        color:
+                                                            AppTheme
+                                                                .textSecondary,
                                                       ),
-                                                      if (!item.isPaid)
-                                                        const SizedBox(
-                                                          width: 8,
-                                                        ),
-                                                    ],
-                                                    if (!item.isPaid) ...[
-                                                      TextButton.icon(
-                                                        style: TextButton.styleFrom(
-                                                          padding:
-                                                              const EdgeInsets.symmetric(
-                                                                horizontal: 8,
-                                                                vertical: 4,
-                                                              ),
-                                                          minimumSize:
-                                                              Size.zero,
-                                                          tapTargetSize:
-                                                              MaterialTapTargetSize
-                                                                  .shrinkWrap,
-                                                          foregroundColor:
-                                                              AppTheme.primary,
-                                                        ),
-                                                        icon: const Icon(
-                                                          Icons
-                                                              .check_circle_outline,
-                                                          size: 14,
-                                                        ),
-                                                        label: const Text(
-                                                          'Mark Item Settled',
-                                                          style: TextStyle(
-                                                            fontSize: 12,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                          ),
-                                                        ),
-                                                        onPressed: () async {
-                                                          await widget
-                                                              .repository
-                                                              .markGoodAsPaid(
-                                                                item.id,
-                                                              );
-                                                          if (context.mounted) {
-                                                            ScaffoldMessenger.of(
-                                                              context,
-                                                            ).showSnackBar(
-                                                              SnackBar(
-                                                                content: Text(
-                                                                  'Marked "${item.name}" as fully paid!',
-                                                                ),
-                                                                backgroundColor:
-                                                                    AppTheme
-                                                                        .primary,
-                                                              ),
-                                                            );
-                                                          }
-                                                        },
+                                                    ),
+                                                    Text(
+                                                      item.isPaid
+                                                          ? 'Settled'
+                                                          : 'Pending: ₹${item.remainingAmount.toStringAsFixed(2)}',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color:
+                                                            item.isPaid
+                                                                ? AppTheme
+                                                                    .paidText
+                                                                : AppTheme
+                                                                    .pendingText,
                                                       ),
-                                                    ],
+                                                    ),
                                                   ],
                                                 ),
+                                                if (!item.isPaid ||
+                                                    item.canBeEdited) ...[
+                                                  const SizedBox(height: 8),
+                                                  Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment.end,
+                                                    children: [
+                                                      if (item.canBeEdited) ...[
+                                                        TextButton.icon(
+                                                          style: TextButton.styleFrom(
+                                                            padding:
+                                                                const EdgeInsets.symmetric(
+                                                                  horizontal: 8,
+                                                                  vertical: 4,
+                                                                ),
+                                                            minimumSize:
+                                                                Size.zero,
+                                                            tapTargetSize:
+                                                                MaterialTapTargetSize
+                                                                    .shrinkWrap,
+                                                            foregroundColor:
+                                                                Colors.blue,
+                                                          ),
+                                                          icon: const Icon(
+                                                            Icons.edit_outlined,
+                                                            size: 14,
+                                                          ),
+                                                          label: const Text(
+                                                            'Edit Record',
+                                                            style: TextStyle(
+                                                              fontSize: 12,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
+                                                          onPressed:
+                                                              () =>
+                                                                  _openEditGoodsDialog(
+                                                                    customer,
+                                                                    item,
+                                                                  ),
+                                                        ),
+                                                        if (!item.isPaid)
+                                                          const SizedBox(
+                                                            width: 8,
+                                                          ),
+                                                      ],
+                                                      if (!item.isPaid) ...[
+                                                        TextButton.icon(
+                                                          style: TextButton.styleFrom(
+                                                            padding:
+                                                                const EdgeInsets.symmetric(
+                                                                  horizontal: 8,
+                                                                  vertical: 4,
+                                                                ),
+                                                            minimumSize:
+                                                                Size.zero,
+                                                            tapTargetSize:
+                                                                MaterialTapTargetSize
+                                                                    .shrinkWrap,
+                                                            foregroundColor:
+                                                                AppTheme
+                                                                    .primary,
+                                                          ),
+                                                          icon: const Icon(
+                                                            Icons
+                                                                .check_circle_outline,
+                                                            size: 14,
+                                                          ),
+                                                          label: const Text(
+                                                            'Mark Item Settled',
+                                                            style: TextStyle(
+                                                              fontSize: 12,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
+                                                          onPressed: () async {
+                                                            await widget
+                                                                .repository
+                                                                .markGoodAsPaid(
+                                                                  item.id,
+                                                                );
+                                                            if (context
+                                                                .mounted) {
+                                                              ScaffoldMessenger.of(
+                                                                context,
+                                                              ).showSnackBar(
+                                                                SnackBar(
+                                                                  content: Text(
+                                                                    'Marked "${item.name}" as fully paid!',
+                                                                  ),
+                                                                  backgroundColor:
+                                                                      AppTheme
+                                                                          .primary,
+                                                                ),
+                                                              );
+                                                            }
+                                                          },
+                                                        ),
+                                                      ],
+                                                    ],
+                                                  ),
+                                                ],
                                               ],
-                                            ],
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    );
-                                  },
-                                ),
+                                      );
+                                    },
+                                  ),
                         ),
                       ],
                     ),

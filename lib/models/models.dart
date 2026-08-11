@@ -156,8 +156,10 @@ class GoodItem {
       totalPrice: (map['totalPrice'] as num?)?.toDouble(),
       amountPaid: (map['amountPaid'] as num?)?.toDouble() ?? 0.0,
       date: DateTime.parse(map['date'] ?? DateTime.now().toIso8601String()),
-      isDeleted: map['isDeleted'] ?? false,
-      deletedAt: map['deletedAt'] != null ? DateTime.tryParse(map['deletedAt'].toString()) : null,
+      isDeleted: map['isDeleted'] == true,
+      deletedAt: map['deletedAt'] != null && map['deletedAt'] != 'null'
+          ? DateTime.tryParse(map['deletedAt'].toString())
+          : null,
     );
   }
 
@@ -232,7 +234,7 @@ class ItemSettlementBreakdown {
       previousAmountPaid: (map['previousAmountPaid'] as num?)?.toDouble() ?? 0.0,
       newAmountPaid: (map['newAmountPaid'] as num?)?.toDouble() ?? 0.0,
       totalPrice: (map['totalPrice'] as num?)?.toDouble() ?? 0.0,
-      isFullyPaidNow: map['isFullyPaidNow'] ?? false,
+      isFullyPaidNow: map['isFullyPaidNow'] == true,
     );
   }
 }
