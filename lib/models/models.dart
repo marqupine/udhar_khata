@@ -115,6 +115,10 @@ class GoodItem {
 
   bool get isPartiallyPaid => amountPaid > 0.001 && !isPaid;
 
+  /// Returns true if the item was created within the last 1 hour and has no payments applied.
+  bool get canBeEdited =>
+      DateTime.now().difference(date).inMinutes < 60 && amountPaid <= 0.001;
+
   String get statusLabel {
     if (isPaid) return 'PAID';
     if (isPartiallyPaid) return 'PARTIAL';

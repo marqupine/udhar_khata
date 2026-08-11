@@ -35,10 +35,13 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
     super.dispose();
   }
 
-  void _openAddGoodsDialog(Customer customer) async {
+  void _openAddGoodsDialog(Customer customer, {bool isLegacyMode = false}) async {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => AddGoodsDialog(customerName: customer.name),
+      builder: (context) => AddGoodsDialog(
+        customerName: customer.name,
+        isLegacyMode: isLegacyMode,
+      ),
     );
 
     if (result != null) {
@@ -48,12 +51,46 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
         category: result['category'],
         quantity: result['quantity'],
         unitPrice: result['unitPrice'],
+        date: result['date'],
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Added "${result['name']}" for ${customer.name}'),
-            backgroundColor: AppTheme.primary,
+            content: Text(
+              isLegacyMode
+                  ? 'Added paper book record "${result['name']}" for ${customer.name}'
+                  : 'Added "${result['name']}" for ${customer.name}',
+            ),
+            backgroundColor: isLegacyMode ? Colors.purple : AppTheme.primary,
+          ),
+        );
+      }
+    }
+  }
+
+  void _openEditGoodsDialog(Customer customer, GoodItem item) async {
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => AddGoodsDialog(
+        customerName: customer.name,
+        existingItem: item,
+      ),
+    );
+
+    if (result != null) {
+      await widget.repository.updateGoodItem(
+        id: item.id,
+        name: result['name'],
+        category: result['category'],
+        quantity: result['quantity'],
+        unitPrice: result['unitPrice'],
+        date: result['date'],
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Updated "${result['name']}" successfully'),
+            backgroundColor: AppTheme.saffronPrimary,
           ),
         );
       }
@@ -349,26 +386,48 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
               // Action Buttons
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
+                child: Column(
                   children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.add_shopping_cart, size: 18),
-                        label: const Text('Add Goods'),
-                        onPressed: () => _openAddGoodsDialog(customer),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.payment, size: 18),
-                        label: const Text('Record Payment'),
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: AppTheme.paidBg.withValues(alpha:0.4),
-                          side: const BorderSide(color: AppTheme.paidText),
-                          foregroundColor: AppTheme.paidText,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.add_shopping_cart, size: 18),
+                            label: const Text('Add Goods'),
+                            onPressed: () => _openAddGoodsDialog(customer),
+                          ),
                         ),
-                        onPressed: () => _openRecordPaymentDialog(customer),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.payment, size: 18),
+                            label: const Text('Record Payment'),
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: AppTheme.paidBg.withValues(alpha: 0.4),
+                              side: const BorderSide(color: AppTheme.paidText),
+                              foregroundColor: AppTheme.paidText,
+                            ),
+                            onPressed: () => _openRecordPaymentDialog(customer),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.menu_book_rounded, size: 18, color: Colors.purple),
+                        label: const Text(
+                          'Paper Book / Historical Entry',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: Colors.purple.withValues(alpha: 0.05),
+                          side: BorderSide(color: Colors.purple.withValues(alpha: 0.4)),
+                          foregroundColor: Colors.purple,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        onPressed: () => _openAddGoodsDialog(customer, isLegacyMode: true),
                       ),
                     ),
                   ],
@@ -537,35 +596,55 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                                           ),
                                         ],
                                       ),
-
-                                      if (!item.isPaid) ...[
+                                      if (!item.isPaid || item.canBeEdited) ...[
                                         const SizedBox(height: 8),
-                                        Align(
-                                          alignment: Alignment.centerRight,
-                                          child: TextButton.icon(
-                                            style: TextButton.styleFrom(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                              minimumSize: Size.zero,
-                                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                              foregroundColor: AppTheme.primary,
-                                            ),
-                                            icon: const Icon(Icons.check_circle_outline, size: 14),
-                                            label: const Text(
-                                              'Mark Item Settled',
-                                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                            ),
-                                            onPressed: () async {
-                                              await widget.repository.markGoodAsPaid(item.id);
-                                              if (context.mounted) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text('Marked "${item.name}" as fully paid!'),
-                                                    backgroundColor: AppTheme.primary,
-                                                  ),
-                                                );
-                                              }
-                                            },
-                                          ),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.end,
+                                          children: [
+                                            if (item.canBeEdited) ...[
+                                              TextButton.icon(
+                                                style: TextButton.styleFrom(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  minimumSize: Size.zero,
+                                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                  foregroundColor: Colors.blue,
+                                                ),
+                                                icon: const Icon(Icons.edit_outlined, size: 14),
+                                                label: const Text(
+                                                  'Edit Record',
+                                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                                ),
+                                                onPressed: () => _openEditGoodsDialog(customer, item),
+                                              ),
+                                              if (!item.isPaid) const SizedBox(width: 8),
+                                            ],
+                                            if (!item.isPaid) ...[
+                                              TextButton.icon(
+                                                style: TextButton.styleFrom(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  minimumSize: Size.zero,
+                                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                  foregroundColor: AppTheme.primary,
+                                                ),
+                                                icon: const Icon(Icons.check_circle_outline, size: 14),
+                                                label: const Text(
+                                                  'Mark Item Settled',
+                                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                                ),
+                                                onPressed: () async {
+                                                  await widget.repository.markGoodAsPaid(item.id);
+                                                  if (context.mounted) {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text('Marked "${item.name}" as fully paid!'),
+                                                        backgroundColor: AppTheme.primary,
+                                                      ),
+                                                    );
+                                                  }
+                                                },
+                                              ),
+                                            ],
+                                          ],
                                         ),
                                       ],
                                     ],

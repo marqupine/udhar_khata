@@ -141,4 +141,56 @@ void main() {
     expect(repository.goods.any((g) => g.name == 'Recent Paid Item'), true);
     expect(repository.goods.any((g) => g.name == 'Old Unpaid Item'), true);
   });
+
+  test('GoodItem edit window rule (< 1 hour) and updateGoodItem', () async {
+    final repository = UdharRepository(null);
+    final customer = await repository.addCustomer(name: 'Edit Test Customer');
+
+    // Recent item (created 10 minutes ago)
+    final recentItem = await repository.addGoodItem(
+      customerId: customer.id,
+      name: 'Recent Chips',
+      category: 'Snacks',
+      quantity: 2,
+      unitPrice: 20,
+      date: DateTime.now().subtract(const Duration(minutes: 10)),
+    );
+
+    // Old item (created 90 minutes ago)
+    final oldItem = await repository.addGoodItem(
+      customerId: customer.id,
+      name: 'Old Oil',
+      category: 'Grocery',
+      quantity: 1,
+      unitPrice: 150,
+      date: DateTime.now().subtract(const Duration(minutes: 90)),
+    );
+
+    expect(recentItem.canBeEdited, true);
+    expect(oldItem.canBeEdited, false);
+
+    // Update recent item
+    final updatedItem = await repository.updateGoodItem(
+      id: recentItem.id,
+      name: 'Recent Chips Large',
+      category: 'Snacks',
+      quantity: 3,
+      unitPrice: 25,
+    );
+
+    expect(updatedItem.name, 'Recent Chips Large');
+    expect(updatedItem.totalPrice, 75.0);
+
+    // Attempting to update old item should throw StateError
+    expect(
+      () => repository.updateGoodItem(
+        id: oldItem.id,
+        name: 'Old Oil Mod',
+        category: 'Grocery',
+        quantity: 2,
+        unitPrice: 150,
+      ),
+      throwsA(isA<StateError>()),
+    );
+  });
 }

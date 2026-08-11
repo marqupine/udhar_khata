@@ -186,6 +186,44 @@ class UdharRepository extends ChangeNotifier {
     return good;
   }
 
+  Future<GoodItem> updateGoodItem({
+    required String id,
+    required String name,
+    required String category,
+    required double quantity,
+    required double unitPrice,
+    DateTime? date,
+  }) async {
+    final index = _goods.indexWhere((g) => g.id == id);
+    if (index == -1) {
+      throw ArgumentError('GoodItem with id "$id" not found.');
+    }
+
+    final existing = _goods[index];
+    if (!existing.canBeEdited) {
+      throw StateError('This item cannot be edited because it is older than 1 hour or has payments applied.');
+    }
+
+    final updated = existing.copyWith(
+      name: name.trim(),
+      category: category.trim(),
+      quantity: quantity,
+      unitPrice: unitPrice,
+      totalPrice: quantity * unitPrice,
+      date: date ?? existing.date,
+    );
+
+    _goods[index] = updated;
+    await _persistAll();
+
+    if (_firestoreService != null) {
+      await _firestoreService.saveGoodItem(updated);
+    }
+
+    notifyListeners();
+    return updated;
+  }
+
   List<GoodItem> getGoodsForCustomer(String customerId) {
     final list = _goods.where((g) => g.customerId == customerId).toList();
     list.sort((a, b) => b.date.compareTo(a.date)); // newest first for display
