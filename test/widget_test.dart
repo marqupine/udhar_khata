@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:udhar_khata/constants/app_constants.dart';
@@ -7,6 +8,7 @@ import 'package:udhar_khata/main.dart';
 import 'package:udhar_khata/services/auth_service.dart';
 import 'package:udhar_khata/services/security_service.dart';
 import 'package:udhar_khata/services/udhar_repository.dart';
+import 'package:udhar_khata/widgets/customer_report_dialog.dart';
 
 class MockAuthService implements AuthService {
   final _controller = StreamController<User?>.broadcast();
@@ -238,5 +240,48 @@ void main() {
     final purgedCount = await repository.autoPurgeRecycleBin(hoursThreshold: 0);
     expect(purgedCount, 1);
     expect(repository.getRecycleBinGoods(customer.id).length, 0);
+  });
+
+  testWidgets('CustomerReportDialog displays report details and item breakdown', (WidgetTester tester) async {
+    final repository = UdharRepository();
+    final customer = await repository.addCustomer(
+      name: 'Report Test Customer',
+      phoneNumber: '9998887770',
+      address: 'Test City',
+    );
+
+    await repository.addGoodItem(
+      customerId: customer.id,
+      name: 'Sample Rice',
+      category: 'Grocery',
+      quantity: 2,
+      unitPrice: 50,
+      date: DateTime(2026, 8, 11, 23, 44),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => CustomerReportDialog.show(
+                context,
+                customer: customer,
+                repository: repository,
+              ),
+              child: const Text('Open Report'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open Report'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Account Statement Report'), findsOneWidget);
+    expect(find.text('Report Test Customer'), findsOneWidget);
+    expect(find.text('Sample Rice'), findsOneWidget);
+    expect(find.text('Copy Text for WhatsApp'), findsOneWidget);
   });
 }

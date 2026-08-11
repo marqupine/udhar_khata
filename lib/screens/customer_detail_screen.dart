@@ -4,6 +4,7 @@ import '../models/models.dart';
 import '../services/udhar_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/add_goods_dialog.dart';
+import '../widgets/customer_report_dialog.dart';
 import '../widgets/record_payment_dialog.dart';
 
 enum GoodsFilter { defaultFilter, newest, oldest, range }
@@ -599,6 +600,19 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
             ),
             actions: [
               IconButton(
+                icon: const Icon(
+                  Icons.assessment_outlined,
+                  color: AppTheme.saffronPrimary,
+                ),
+                tooltip: 'Generate Customer Report',
+                onPressed:
+                    () => CustomerReportDialog.show(
+                      context,
+                      customer: customer,
+                      repository: widget.repository,
+                    ),
+              ),
+              IconButton(
                 icon: Badge(
                   label: Text('${binGoods.length}'),
                   isLabelVisible: binGoods.isNotEmpty,
@@ -990,6 +1004,24 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                                 () => _openAddGoodsDialog(
                                   customer,
                                   isLegacyMode: true,
+                                ),
+                          ),
+                          const SizedBox(width: 12),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            icon: const Icon(
+                              Icons.assessment_outlined,
+                              size: 18,
+                              color: AppTheme.saffronDark,
+                            ),
+                            tooltip: 'Generate Report',
+                            onPressed:
+                                () => CustomerReportDialog.show(
+                                  context,
+                                  customer: customer,
+                                  repository: widget.repository,
                                 ),
                           ),
                         ],
