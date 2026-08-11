@@ -26,6 +26,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
   late TabController _tabController;
   GoodsFilter _goodsFilter = GoodsFilter.defaultFilter;
   DateTimeRange? _selectedDateRange;
+  bool _isHeaderCollapsed = false;
 
   List<GoodItem> _getFilteredGoods(List<GoodItem> allGoods) {
     List<GoodItem> list;
@@ -270,6 +271,18 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
             ),
             actions: [
               IconButton(
+                icon: Icon(
+                  _isHeaderCollapsed ? Icons.fullscreen_exit : Icons.fullscreen,
+                  color: AppTheme.saffronPrimary,
+                ),
+                tooltip: _isHeaderCollapsed ? 'Show Summary Header' : 'Full Screen List View',
+                onPressed: () {
+                  setState(() {
+                    _isHeaderCollapsed = !_isHeaderCollapsed;
+                  });
+                },
+              ),
+              IconButton(
                 icon: const Icon(Icons.delete_sweep_outlined, color: AppTheme.pendingText),
                 tooltip: 'Clear Customer Records',
                 onPressed: () async {
@@ -310,128 +323,223 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
           ),
           body: Column(
             children: [
-              // Summary Financial Cards Header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.cardBorder),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha:0.04),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Pending Balance',
-                                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '₹${pendingBalance.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.bold,
-                                  color: pendingBalance > 0.001 ? AppTheme.pendingText : AppTheme.paidText,
+              // Summary Financial Header (Collapsible for Full Screen View)
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 250),
+                crossFadeState: _isHeaderCollapsed
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+                firstChild: Padding(
+                  padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 4.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.cardBorder),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        // Pending Balance & Badge Row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Pending Balance',
+                                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                                 ),
-                              ),
-                            ],
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: pendingBalance > 0.001 ? AppTheme.pendingBg : AppTheme.paidBg,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  pendingBalance > 0.001 ? 'DEBT PENDING' : 'ALL CLEAR',
+                                const SizedBox(height: 2),
+                                Text(
+                                  '₹${pendingBalance.toStringAsFixed(2)}',
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 24,
                                     fontWeight: FontWeight.bold,
                                     color: pendingBalance > 0.001 ? AppTheme.pendingText : AppTheme.paidText,
                                   ),
                                 ),
-                              ),
-                              if (customer.addedByUserName.isNotEmpty) ...[
-                                const SizedBox(height: 6),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.person_outline, size: 12, color: AppTheme.textMuted),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      'Added by ${customer.addedByUserName}',
-                                      style: const TextStyle(fontSize: 11, color: AppTheme.textMuted, fontWeight: FontWeight.w500),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      const Divider(height: 1, color: AppTheme.cardBorder),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Total Borrowed',
-                                  style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
-                                ),
-                                Text(
-                                  '₹${totalBorrowed.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                    color: AppTheme.textPrimary,
-                                  ),
-                                ),
                               ],
                             ),
-                          ),
-                          Container(width: 1, height: 28, color: AppTheme.cardBorder),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Total Paid',
-                                    style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: pendingBalance > 0.001 ? AppTheme.pendingBg : AppTheme.paidBg,
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
-                                  Text(
-                                    '₹${totalPaid.toStringAsFixed(2)}',
-                                    style: const TextStyle(
+                                  child: Text(
+                                    pendingBalance > 0.001 ? 'DEBT PENDING' : 'ALL CLEAR',
+                                    style: TextStyle(
+                                      fontSize: 10,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                      color: AppTheme.paidText,
+                                      color: pendingBalance > 0.001 ? AppTheme.pendingText : AppTheme.paidText,
                                     ),
+                                  ),
+                                ),
+                                if (customer.addedByUserName.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Added by ${customer.addedByUserName}',
+                                    style: const TextStyle(fontSize: 10, color: AppTheme.textMuted, fontWeight: FontWeight.w500),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        const Divider(height: 1, color: AppTheme.cardBorder),
+                        const SizedBox(height: 8),
+
+                        // Total Borrowed & Total Paid metrics
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  const Text('Borrowed: ', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                                  Text(
+                                    '₹${totalBorrowed.toStringAsFixed(2)}',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
                                   ),
                                 ],
                               ),
                             ),
+                            Container(width: 1, height: 16, color: AppTheme.cardBorder),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 12.0),
+                                child: Row(
+                                  children: [
+                                    const Text('Paid: ', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                                    Text(
+                                      '₹${totalPaid.toStringAsFixed(2)}',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.paidText),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Streamlined Action Buttons Row (3 in 1 row)
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                icon: const Icon(Icons.add_shopping_cart, size: 15),
+                                label: const Text('Add Goods', style: TextStyle(fontSize: 11)),
+                                onPressed: () => _openAddGoodsDialog(customer),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: AppTheme.paidBg.withValues(alpha: 0.4),
+                                  side: const BorderSide(color: AppTheme.paidText),
+                                  foregroundColor: AppTheme.paidText,
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                icon: const Icon(Icons.payment, size: 15),
+                                label: const Text('Record Pay', style: TextStyle(fontSize: 11)),
+                                onPressed: () => _openRecordPaymentDialog(customer),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  backgroundColor: Colors.purple.withValues(alpha: 0.05),
+                                  side: BorderSide(color: Colors.purple.withValues(alpha: 0.4)),
+                                  foregroundColor: Colors.purple,
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                icon: const Icon(Icons.menu_book_rounded, size: 15),
+                                label: const Text('Paper Book', style: TextStyle(fontSize: 11)),
+                                onPressed: () => _openAddGoodsDialog(customer, isLegacyMode: true),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                secondChild: Container(
+                  margin: const EdgeInsets.fromLTRB(16, 4, 16, 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.cardBorder),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Pending: ₹${pendingBalance.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: pendingBalance > 0.001 ? AppTheme.pendingText : AppTheme.paidText,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '• Borrowed: ₹${totalBorrowed.toStringAsFixed(2)}',
+                            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            icon: const Icon(Icons.add_shopping_cart, size: 18, color: AppTheme.saffronPrimary),
+                            tooltip: 'Add Goods',
+                            onPressed: () => _openAddGoodsDialog(customer),
+                          ),
+                          const SizedBox(width: 12),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            icon: const Icon(Icons.payment, size: 18, color: AppTheme.paidText),
+                            tooltip: 'Record Payment',
+                            onPressed: () => _openRecordPaymentDialog(customer),
+                          ),
+                          const SizedBox(width: 12),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            icon: const Icon(Icons.menu_book_rounded, size: 18, color: Colors.purple),
+                            tooltip: 'Paper Book Entry',
+                            onPressed: () => _openAddGoodsDialog(customer, isLegacyMode: true),
                           ),
                         ],
                       ),
@@ -440,70 +548,39 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                 ),
               ),
 
-              // Action Buttons
+              // Tab Bar & Full Screen Toggle Header Row
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Column(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.add_shopping_cart, size: 18),
-                            label: const Text('Add Goods'),
-                            onPressed: () => _openAddGoodsDialog(customer),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            icon: const Icon(Icons.payment, size: 18),
-                            label: const Text('Record Payment'),
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: AppTheme.paidBg.withValues(alpha: 0.4),
-                              side: const BorderSide(color: AppTheme.paidText),
-                              foregroundColor: AppTheme.paidText,
-                            ),
-                            onPressed: () => _openRecordPaymentDialog(customer),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.menu_book_rounded, size: 18, color: Colors.purple),
-                        label: const Text(
-                          'Paper Book / Historical Entry',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.purple.withValues(alpha: 0.05),
-                          side: BorderSide(color: Colors.purple.withValues(alpha: 0.4)),
-                          foregroundColor: Colors.purple,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                        ),
-                        onPressed: () => _openAddGoodsDialog(customer, isLegacyMode: true),
+                    Expanded(
+                      child: TabBar(
+                        controller: _tabController,
+                        indicatorColor: AppTheme.primary,
+                        labelColor: AppTheme.primary,
+                        unselectedLabelColor: AppTheme.textSecondary,
+                        labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+                        tabs: [
+                          Tab(text: 'Borrowed Goods (${filteredGoods.length})'),
+                          Tab(text: 'Payment Receipts (${payments.length})'),
+                        ],
                       ),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        _isHeaderCollapsed ? Icons.fullscreen_exit : Icons.fullscreen,
+                        color: AppTheme.saffronPrimary,
+                        size: 20,
+                      ),
+                      tooltip: _isHeaderCollapsed ? 'Show Full Summary' : 'Maximize List Height',
+                      onPressed: () {
+                        setState(() {
+                          _isHeaderCollapsed = !_isHeaderCollapsed;
+                        });
+                      },
                     ),
                   ],
                 ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Tab bar
-              TabBar(
-                controller: _tabController,
-                indicatorColor: AppTheme.primary,
-                labelColor: AppTheme.primary,
-                unselectedLabelColor: AppTheme.textSecondary,
-                labelStyle: const TextStyle(fontWeight: FontWeight.bold),
-                tabs: [
-                  Tab(text: 'Borrowed Goods (${filteredGoods.length})'),
-                  Tab(text: 'Payment Receipts (${payments.length})'),
-                ],
               ),
 
               // Tab View
