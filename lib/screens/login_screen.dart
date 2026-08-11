@@ -119,7 +119,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: 90,
                     height: 90,
                     decoration: BoxDecoration(
-                      gradient: AppTheme.primaryGradient,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
@@ -129,10 +128,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.account_balance_wallet_rounded,
-                      size: 48,
-                      color: Colors.white,
+                    child: ClipOval(
+                      child: Image.asset(
+                        AppConstants.appLogoAsset,
+                        width: 90,
+                        height: 90,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),

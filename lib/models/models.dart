@@ -39,12 +39,15 @@ class Customer {
       address: map['address'] ?? '',
       addedByUserId: map['addedByUserId'] ?? '',
       addedByUserName: map['addedByUserName'] ?? '',
-      createdAt: DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.parse(
+        map['createdAt'] ?? DateTime.now().toIso8601String(),
+      ),
     );
   }
 
   String toJson() => json.encode(toMap());
-  factory Customer.fromJson(String source) => Customer.fromMap(json.decode(source));
+  factory Customer.fromJson(String source) =>
+      Customer.fromMap(json.decode(source));
 }
 
 class AppUser {
@@ -78,12 +81,15 @@ class AppUser {
       name: map['name'] ?? '',
       email: map['email'] ?? '',
       phoneNumber: map['phoneNumber'] ?? '',
-      createdAt: DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.parse(
+        map['createdAt'] ?? DateTime.now().toIso8601String(),
+      ),
     );
   }
 
   String toJson() => json.encode(toMap());
-  factory AppUser.fromJson(String source) => AppUser.fromMap(json.decode(source));
+  factory AppUser.fromJson(String source) =>
+      AppUser.fromMap(json.decode(source));
 }
 
 class GoodItem {
@@ -96,6 +102,8 @@ class GoodItem {
   final double totalPrice;
   double amountPaid;
   final DateTime date;
+  final bool isDeleted;
+  final DateTime? deletedAt;
 
   GoodItem({
     required this.id,
@@ -107,13 +115,20 @@ class GoodItem {
     double? totalPrice,
     this.amountPaid = 0.0,
     required this.date,
+    this.isDeleted = false,
+    this.deletedAt,
   }) : totalPrice = totalPrice ?? (quantity * unitPrice);
 
-  double get remainingAmount => (totalPrice - amountPaid).clamp(0.0, totalPrice);
+  double get remainingAmount =>
+      (totalPrice - amountPaid).clamp(0.0, totalPrice);
 
   bool get isPaid => remainingAmount <= 0.001;
 
   bool get isPartiallyPaid => amountPaid > 0.001 && !isPaid;
+
+  /// Returns true if the item was created within the last 1 hour and has no payments applied.
+  bool get canBeEdited =>
+      DateTime.now().difference(date).inMinutes < 60 && amountPaid <= 0.001;
 
   String get statusLabel {
     if (isPaid) return 'PAID';
@@ -132,6 +147,8 @@ class GoodItem {
       'totalPrice': totalPrice,
       'amountPaid': amountPaid,
       'date': date.toIso8601String(),
+      'isDeleted': isDeleted,
+      'deletedAt': deletedAt?.toIso8601String(),
     };
   }
 
@@ -146,11 +163,17 @@ class GoodItem {
       totalPrice: (map['totalPrice'] as num?)?.toDouble(),
       amountPaid: (map['amountPaid'] as num?)?.toDouble() ?? 0.0,
       date: DateTime.parse(map['date'] ?? DateTime.now().toIso8601String()),
+      isDeleted: map['isDeleted'] == true,
+      deletedAt:
+          map['deletedAt'] != null && map['deletedAt'] != 'null'
+              ? DateTime.tryParse(map['deletedAt'].toString())
+              : null,
     );
   }
 
   String toJson() => json.encode(toMap());
-  factory GoodItem.fromJson(String source) => GoodItem.fromMap(json.decode(source));
+  factory GoodItem.fromJson(String source) =>
+      GoodItem.fromMap(json.decode(source));
 
   GoodItem copyWith({
     String? id,
@@ -162,6 +185,8 @@ class GoodItem {
     double? totalPrice,
     double? amountPaid,
     DateTime? date,
+    bool? isDeleted,
+    DateTime? deletedAt,
   }) {
     return GoodItem(
       id: id ?? this.id,
@@ -173,6 +198,8 @@ class GoodItem {
       totalPrice: totalPrice ?? this.totalPrice,
       amountPaid: amountPaid ?? this.amountPaid,
       date: date ?? this.date,
+      isDeleted: isDeleted ?? this.isDeleted,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 }
@@ -213,10 +240,11 @@ class ItemSettlementBreakdown {
       itemId: map['itemId'] ?? '',
       itemName: map['itemName'] ?? '',
       amountApplied: (map['amountApplied'] as num?)?.toDouble() ?? 0.0,
-      previousAmountPaid: (map['previousAmountPaid'] as num?)?.toDouble() ?? 0.0,
+      previousAmountPaid:
+          (map['previousAmountPaid'] as num?)?.toDouble() ?? 0.0,
       newAmountPaid: (map['newAmountPaid'] as num?)?.toDouble() ?? 0.0,
       totalPrice: (map['totalPrice'] as num?)?.toDouble() ?? 0.0,
-      isFullyPaidNow: map['isFullyPaidNow'] ?? false,
+      isFullyPaidNow: map['isFullyPaidNow'] == true,
     );
   }
 }
@@ -256,13 +284,18 @@ class PaymentRecord {
       amountPaid: (map['amountPaid'] as num?)?.toDouble() ?? 0.0,
       date: DateTime.parse(map['date'] ?? DateTime.now().toIso8601String()),
       note: map['note'] ?? '',
-      settlements: (map['settlements'] as List<dynamic>?)
-              ?.map((s) => ItemSettlementBreakdown.fromMap(s as Map<String, dynamic>))
+      settlements:
+          (map['settlements'] as List<dynamic>?)
+              ?.map(
+                (s) =>
+                    ItemSettlementBreakdown.fromMap(s as Map<String, dynamic>),
+              )
               .toList() ??
           [],
     );
   }
 
   String toJson() => json.encode(toMap());
-  factory PaymentRecord.fromJson(String source) => PaymentRecord.fromMap(json.decode(source));
+  factory PaymentRecord.fromJson(String source) =>
+      PaymentRecord.fromMap(json.decode(source));
 }
