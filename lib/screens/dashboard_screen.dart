@@ -256,8 +256,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    borderRadius: BorderRadius.circular(12),
+                    shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
                         color: AppTheme.saffronPrimary.withValues(alpha: 0.35),
@@ -266,10 +265,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    AppConstants.appIcon,
-                    color: Colors.white,
-                    size: 22,
+                  child: ClipOval(
+                    child: Image.asset(
+                      AppConstants.appLogoAsset,
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -780,10 +782,8 @@ class _AnimatedGreetingHeaderState extends State<AnimatedGreetingHeader>
       return 'Good Morning,';
     } else if (hour >= 12 && hour < 17) {
       return 'Good Afternoon,';
-    } else if (hour >= 17 && hour < 22) {
-      return 'Good Evening,';
     } else {
-      return 'Good Night,';
+      return 'Good Evening,';
     }
   }
 
