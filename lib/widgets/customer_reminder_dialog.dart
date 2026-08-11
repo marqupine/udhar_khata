@@ -12,11 +12,11 @@ import '../models/models.dart';
 import '../services/udhar_repository.dart';
 import '../theme/app_theme.dart';
 
-class CustomerReportDialog extends StatefulWidget {
+class CustomerReminderDialog extends StatefulWidget {
   final Customer customer;
   final UdharRepository repository;
 
-  const CustomerReportDialog({
+  const CustomerReminderDialog({
     super.key,
     required this.customer,
     required this.repository,
@@ -31,15 +31,15 @@ class CustomerReportDialog extends StatefulWidget {
       context: context,
       builder:
           (context) =>
-              CustomerReportDialog(customer: customer, repository: repository),
+              CustomerReminderDialog(customer: customer, repository: repository),
     );
   }
 
   @override
-  State<CustomerReportDialog> createState() => _CustomerReportDialogState();
+  State<CustomerReminderDialog> createState() => _CustomerReminderDialogState();
 }
 
-class _CustomerReportDialogState extends State<CustomerReportDialog> {
+class _CustomerReminderDialogState extends State<CustomerReminderDialog> {
   final GlobalKey _repaintKey = GlobalKey();
   bool _isSharing = false;
 
@@ -67,11 +67,7 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
     return '$day $month $year, $hour:$minute $period';
   }
 
-  Future<void> _shareConsolidatedReportPng(
-    double totalBorrowed,
-    double totalPaid,
-    double pendingBalance,
-  ) async {
+  Future<void> _shareThermalReceiptPng(double pendingBalance) async {
     setState(() => _isSharing = true);
     try {
       await Future.delayed(const Duration(milliseconds: 100));
@@ -84,7 +80,7 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Could not capture statement preview. Please try again.'),
+              content: Text('Could not capture receipt preview. Please try again.'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -99,28 +95,28 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
       final image = await boundary.toImage(pixelRatio: 3.0);
       final byteData = await image.toByteData(format: ImageByteFormat.png);
       if (byteData == null) {
-        throw Exception('Failed to encode report image to PNG format.');
+        throw Exception('Failed to encode receipt image to PNG format.');
       }
       final pngBytes = byteData.buffer.asUint8List();
 
       final tempDir = await getTemporaryDirectory();
       final filePath =
-          '${tempDir.path}/udhar_khata_${widget.customer.id}_consolidated_report.png';
+          '${tempDir.path}/udhar_khata_${widget.customer.id}_dues_reminder.png';
       final file = File(filePath);
       await file.writeAsBytes(pngBytes, flush: true);
 
       final messageText =
-          'Hello ${widget.customer.name}, here is your consolidated account ledger statement from ${AppConstants.appName}.\nTotal Borrowed: ₹${totalBorrowed.toStringAsFixed(2)}\nTotal Paid: ₹${totalPaid.toStringAsFixed(2)}\nNet Balance: ₹${pendingBalance.toStringAsFixed(2)}.\nThank you!';
+          'Hello ${widget.customer.name}, this is a gentle reminder regarding your pending balance on ${AppConstants.appName}.\nTotal Outstanding Dues: ₹${pendingBalance.toStringAsFixed(2)}.\nPlease arrange for payment at your earliest convenience. Thank you!';
 
       try {
         // ignore: deprecated_member_use
         await Share.shareXFiles(
           [XFile(filePath)],
           text: messageText,
-          subject: '${AppConstants.appName} Consolidated Statement - ${widget.customer.name}',
+          subject: '${AppConstants.appName} Dues Reminder - ${widget.customer.name}',
         );
       } catch (shareErr) {
-        debugPrint('System share plugin exception: $shareErr');
+        debugPrint('System share plugin error: $shareErr');
       }
 
       String cleanPhone = widget.customer.phoneNumber.replaceAll(
@@ -151,18 +147,18 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Consolidated Report saved! Opening WhatsApp for ${widget.customer.name}...',
+              'Reminder PNG saved! Opening WhatsApp for ${widget.customer.name}...',
             ),
-            backgroundColor: AppTheme.saffronPrimary,
+            backgroundColor: const Color(0xFF25D366),
           ),
         );
       }
     } catch (e) {
-      debugPrint('Error sharing report PNG: $e');
+      debugPrint('Error sharing receipt PNG: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error generating report image: $e'),
+            content: Text('Error generating reminder image: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -174,14 +170,9 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final goods = widget.repository.getGoodsForCustomer(widget.customer.id);
-    final payments = widget.repository.getPaymentsForCustomer(widget.customer.id);
-    final totalBorrowed = widget.repository.getCustomerTotalBorrowed(
-      widget.customer.id,
-    );
-    final totalPaid = widget.repository.getCustomerTotalPaid(
-      widget.customer.id,
-    );
+    final allGoods = widget.repository.getGoodsForCustomer(widget.customer.id);
+    // ONLY unpaid or partially paid goods for reminder bill
+    final unpaidGoods = allGoods.where((g) => !g.isPaid).toList();
     final pendingBalance = widget.repository.getCustomerPendingBalance(
       widget.customer.id,
     );
@@ -193,7 +184,7 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
       child: Container(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.88,
-          maxWidth: 580,
+          maxWidth: 550,
         ),
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -206,13 +197,13 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
                 Row(
                   children: [
                     const Icon(
-                      Icons.assessment_outlined,
-                      color: AppTheme.saffronDark,
+                      Icons.rocket_launch_rounded,
+                      color: AppTheme.pendingText,
                       size: 24,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Consolidated Report',
+                      'Dues Reminder Bill',
                       style: GoogleFonts.outfit(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -229,7 +220,7 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
             ),
             const SizedBox(height: 8),
 
-            // Scrollable Consolidated Statement Document View
+            // Scrollable Thermal Paper Dues Bill View
             Expanded(
               child: SingleChildScrollView(
                 child: RepaintBoundary(
@@ -237,9 +228,9 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
                   child: Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFCFCF9), // Ledger Paper Background
+                      color: const Color(0xFFFFFDF5), // Warm Thermal Paper
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFE2E2DC)),
+                      border: Border.all(color: const Color(0xFFE8E2CE)),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.04),
@@ -251,14 +242,14 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Store Logo Badge
+                        // Branding Circle
                         Container(
                           width: 50,
                           height: 50,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: AppTheme.saffronPrimary,
+                              color: AppTheme.pendingText,
                               width: 2,
                             ),
                           ),
@@ -283,15 +274,16 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
                           ),
                         ),
                         Text(
-                          '*** CONSOLIDATED CUSTOMER STATEMENT ***',
+                          '*** OUTSTANDING DUES REMINDER BILL ***',
                           style: GoogleFonts.courierPrime(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.saffronDark,
+                            color: AppTheme.pendingText,
                           ),
                         ),
                         const SizedBox(height: 12),
 
+                        // Dotted Divider
                         const Text(
                           '------------------------------------------------------------------',
                           style: TextStyle(
@@ -304,7 +296,7 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
                         ),
                         const SizedBox(height: 8),
 
-                        // Customer Metadata
+                        // Meta Info
                         Align(
                           alignment: Alignment.centerLeft,
                           child: Column(
@@ -326,7 +318,7 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
                                   widget.customer.address,
                                 ),
                               _buildMetaRow(
-                                'Statement Date:',
+                                'Date & Time:',
                                 _formatDateTime(DateTime.now()),
                               ),
                             ],
@@ -346,27 +338,39 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
                         ),
                         const SizedBox(height: 8),
 
-                        // Section 1: Borrowed Goods (Paid & Unpaid)
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            '1. BORROWED GOODS LOG (PAID & UNPAID)',
-                            style: GoogleFonts.courierPrime(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: Colors.black87,
+                        // Section Title: UNPAID BORROWED GOODS
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'UNPAID ITEM DETAILS',
+                              style: GoogleFonts.courierPrime(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: AppTheme.pendingText,
+                              ),
                             ),
-                          ),
+                            Text(
+                              'DUE AMOUNT (₹)',
+                              style: GoogleFonts.courierPrime(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: AppTheme.pendingText,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 6),
 
-                        if (goods.isEmpty)
+                        // Itemized List - UNPAID ITEMS ONLY
+                        if (unpaidGoods.isEmpty)
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                             child: Text(
-                              'No borrowed goods recorded.',
+                              'No pending dues! All borrowed goods are paid.',
                               style: GoogleFonts.courierPrime(
-                                color: Colors.black54,
+                                color: AppTheme.paidText,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           )
@@ -374,7 +378,7 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
                           ListView.separated(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            itemCount: goods.length,
+                            itemCount: unpaidGoods.length,
                             separatorBuilder:
                                 (ctx, i) => const Padding(
                                   padding: EdgeInsets.symmetric(vertical: 4),
@@ -389,7 +393,7 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
                                   ),
                                 ),
                             itemBuilder: (context, index) {
-                              final item = goods[index];
+                              final item = unpaidGoods[index];
                               final qtyStr = item.quantity.toStringAsFixed(
                                 item.quantity.truncateToDouble() ==
                                         item.quantity
@@ -409,174 +413,52 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
                                           '${index + 1}. ${item.name}',
                                           style: GoogleFonts.courierPrime(
                                             fontWeight: FontWeight.bold,
-                                            fontSize: 13,
+                                            fontSize: 14,
                                             color: Colors.black87,
                                           ),
                                         ),
                                       ),
                                       Text(
-                                        '₹${item.totalPrice.toStringAsFixed(2)}',
+                                        '₹${item.remainingAmount.toStringAsFixed(2)}',
                                         style: GoogleFonts.courierPrime(
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          color: Colors.black87,
+                                          fontSize: 14,
+                                          color: AppTheme.pendingText,
                                         ),
                                       ),
                                     ],
                                   ),
                                   const SizedBox(height: 2),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        '   Date: ${_formatDateTime(item.date)}',
-                                        style: GoogleFonts.courierPrime(
-                                          fontSize: 10,
-                                          color: Colors.black54,
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 1,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              item.isPaid
-                                                  ? AppTheme.paidBg
-                                                  : item.isPartiallyPaid
-                                                  ? AppTheme.partialBg
-                                                  : AppTheme.pendingBg,
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          item.statusLabel,
-                                          style: GoogleFonts.courierPrime(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                            color:
-                                                item.isPaid
-                                                    ? AppTheme.paidText
-                                                    : item.isPartiallyPaid
-                                                    ? AppTheme.partialText
-                                                    : AppTheme.pendingText,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                  Text(
+                                    '   Date: ${_formatDateTime(item.date)}',
+                                    style: GoogleFonts.courierPrime(
+                                      fontSize: 11,
+                                      color: Colors.black54,
+                                      fontStyle: FontStyle.italic,
+                                    ),
                                   ),
                                   Text(
-                                    '   $qtyStr qty @ ₹${item.unitPrice.toStringAsFixed(2)} | Paid: ₹${item.amountPaid.toStringAsFixed(2)} | Due: ₹${item.remainingAmount.toStringAsFixed(2)}',
+                                    '   $qtyStr qty @ ₹${item.unitPrice.toStringAsFixed(2)} | Total: ₹${item.totalPrice.toStringAsFixed(2)}',
                                     style: GoogleFonts.courierPrime(
-                                      fontSize: 10,
+                                      fontSize: 11,
                                       color: Colors.black87,
                                     ),
                                   ),
-                                ],
-                              );
-                            },
-                          ),
-
-                        const SizedBox(height: 12),
-                        const Text(
-                          '------------------------------------------------------------------',
-                          style: TextStyle(
-                            color: Colors.black38,
-                            fontSize: 12,
-                            fontFamily: 'monospace',
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.clip,
-                        ),
-                        const SizedBox(height: 8),
-
-                        // Section 2: Payment Receipts History
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            '2. PAYMENT RECEIPTS HISTORY',
-                            style: GoogleFonts.courierPrime(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: AppTheme.paidText,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-
-                        if (payments.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Text(
-                              'No payment receipts recorded.',
-                              style: GoogleFonts.courierPrime(
-                                color: Colors.black54,
-                              ),
-                            ),
-                          )
-                        else
-                          ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: payments.length,
-                            separatorBuilder:
-                                (ctx, i) => const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 4),
-                                  child: Text(
-                                    '- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -',
-                                    style: TextStyle(
-                                      color: Colors.black12,
-                                      fontSize: 10,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.clip,
-                                  ),
-                                ),
-                            itemBuilder: (context, index) {
-                              final pay = payments[index];
-                              return Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${index + 1}. Payment Received (${_formatDateTime(pay.date)})',
-                                        style: GoogleFonts.courierPrime(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppTheme.paidText,
-                                        ),
+                                  if (item.amountPaid > 0.001)
+                                    Text(
+                                      '   Already Paid: ₹${item.amountPaid.toStringAsFixed(2)} | Balance Due: ₹${item.remainingAmount.toStringAsFixed(2)}',
+                                      style: GoogleFonts.courierPrime(
+                                        fontSize: 11,
+                                        color: AppTheme.pendingText,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                      if (pay.note.isNotEmpty)
-                                        Text(
-                                          '   Note: ${pay.note}',
-                                          style: GoogleFonts.courierPrime(
-                                            fontSize: 10,
-                                            color: Colors.black54,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                  Text(
-                                    '₹${pay.amountPaid.toStringAsFixed(2)}',
-                                    style: GoogleFonts.courierPrime(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                      color: AppTheme.paidText,
                                     ),
-                                  ),
                                 ],
                               );
                             },
                           ),
 
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 10),
                         const Text(
                           '==================================================================',
                           style: TextStyle(
@@ -589,58 +471,37 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
                         ),
                         const SizedBox(height: 8),
 
-                        // Account Financial Metrics Summary
-                        _buildSummaryRow(
-                          'TOTAL BORROWED GOODS:',
-                          '₹${totalBorrowed.toStringAsFixed(2)}',
-                        ),
-                        _buildSummaryRow(
-                          'TOTAL PAYMENTS RECEIVED:',
-                          '₹${totalPaid.toStringAsFixed(2)}',
-                        ),
-                        const SizedBox(height: 4),
-
+                        // Net Due Balance Container
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
+                            horizontal: 12,
+                            vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color:
-                                pendingBalance > 0.001
-                                    ? AppTheme.pendingBg
-                                    : AppTheme.paidBg,
+                            color: AppTheme.pendingBg,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color:
-                                  pendingBalance > 0.001
-                                      ? AppTheme.pendingText
-                                      : AppTheme.paidText,
+                              color: AppTheme.pendingText,
+                              width: 1.5,
                             ),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'NET PENDING BALANCE:',
+                                'TOTAL OUTSTANDING DUES:',
                                 style: GoogleFonts.courierPrime(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
-                                  color:
-                                      pendingBalance > 0.001
-                                          ? AppTheme.pendingText
-                                          : AppTheme.paidText,
+                                  color: AppTheme.pendingText,
                                 ),
                               ),
                               Text(
                                 '₹${pendingBalance.toStringAsFixed(2)}',
                                 style: GoogleFonts.courierPrime(
                                   fontWeight: FontWeight.w900,
-                                  fontSize: 17,
-                                  color:
-                                      pendingBalance > 0.001
-                                          ? AppTheme.pendingText
-                                          : AppTheme.paidText,
+                                  fontSize: 18,
+                                  color: AppTheme.pendingText,
                                 ),
                               ),
                             ],
@@ -661,17 +522,17 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
                         const SizedBox(height: 10),
 
                         Text(
-                          '🌟 Thank you for doing business with us!',
+                          '⚠️ Kindly settle your pending dues at the earliest.',
                           style: GoogleFonts.outfit(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                            color: AppTheme.pendingText,
                           ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Powered by ${AppConstants.appName} Smart Ledger',
+                          'Generated via ${AppConstants.appName} Smart Ledger',
                           style: GoogleFonts.courierPrime(
                             fontSize: 10,
                             color: Colors.black45,
@@ -685,13 +546,13 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
             ),
             const SizedBox(height: 14),
 
-            // Share Consolidated Report Action Button
+            // Send Reminder Action Button
             SizedBox(
               width: double.infinity,
               height: 48,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.saffronPrimary,
+                  backgroundColor: const Color(0xFF25D366),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -708,11 +569,11 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
                             strokeWidth: 2,
                           ),
                         )
-                        : const Icon(Icons.share_rounded, size: 20),
+                        : const Icon(Icons.send_rounded, size: 20),
                 label: Text(
                   _isSharing
-                      ? 'Generating Consolidated Report...'
-                      : 'Share Consolidated Statement',
+                      ? 'Preparing Reminder PNG...'
+                      : 'Send Dues Reminder on WhatsApp',
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -721,11 +582,7 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
                 onPressed:
                     _isSharing
                         ? null
-                        : () => _shareConsolidatedReportPng(
-                          totalBorrowed,
-                          totalPaid,
-                          pendingBalance,
-                        ),
+                        : () => _shareThermalReceiptPng(pendingBalance),
               ),
             ),
           ],
@@ -741,7 +598,7 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 105,
+            width: 90,
             child: Text(
               label,
               style: GoogleFonts.courierPrime(
@@ -758,32 +615,6 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
                 fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
                 color: Colors.black87,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.courierPrime(
-              fontSize: 12,
-              color: Colors.black87,
-            ),
-          ),
-          Text(
-            value,
-            style: GoogleFonts.courierPrime(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
             ),
           ),
         ],

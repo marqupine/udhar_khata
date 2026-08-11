@@ -4,6 +4,7 @@ import '../models/models.dart';
 import '../services/udhar_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/add_goods_dialog.dart';
+import '../widgets/animated_reminder_button.dart';
 import '../widgets/customer_report_dialog.dart';
 import '../widgets/record_payment_dialog.dart';
 
@@ -521,6 +522,50 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
     );
   }
 
+  Widget _buildHeaderActionButton({
+    required IconData icon,
+    required Color color,
+    required String tooltip,
+    required VoidCallback onPressed,
+    int badgeCount = 0,
+  }) {
+    Widget iconWidget = Icon(icon, size: 20, color: color);
+
+    if (badgeCount > 0) {
+      iconWidget = Badge(
+        label: Text(
+          '$badgeCount',
+          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: AppTheme.pendingText,
+        textColor: Colors.white,
+        child: iconWidget,
+      );
+    }
+
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: 36,
+          height: 36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceVariant.withValues(alpha: 0.7),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: AppTheme.cardBorder.withValues(alpha: 0.6),
+              width: 1.0,
+            ),
+          ),
+          child: iconWidget,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -599,12 +644,10 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
               ],
             ),
             actions: [
-              IconButton(
-                icon: const Icon(
-                  Icons.assessment_outlined,
-                  color: AppTheme.saffronPrimary,
-                ),
-                tooltip: 'Generate Customer Report',
+              _buildHeaderActionButton(
+                icon: Icons.assessment_outlined,
+                color: AppTheme.saffronPrimary,
+                tooltip: 'Consolidated Customer Report',
                 onPressed:
                     () => CustomerReportDialog.show(
                       context,
@@ -612,24 +655,24 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                       repository: widget.repository,
                     ),
               ),
-              IconButton(
-                icon: Badge(
-                  label: Text('${binGoods.length}'),
-                  isLabelVisible: binGoods.isNotEmpty,
-                  child: const Icon(
-                    Icons.auto_delete_outlined,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
+              const SizedBox(width: 6),
+              AnimatedReminderButton(
+                customer: customer,
+                repository: widget.repository,
+              ),
+              const SizedBox(width: 6),
+              _buildHeaderActionButton(
+                icon: Icons.auto_delete_outlined,
+                color: AppTheme.textSecondary,
                 tooltip: 'Recycle Bin (${binGoods.length})',
+                badgeCount: binGoods.length,
                 onPressed: () => _openRecycleBinBottomSheet(customer),
               ),
-              IconButton(
-                icon: const Icon(
-                  Icons.delete_sweep_outlined,
-                  color: AppTheme.pendingText,
-                ),
-                tooltip: 'Clear Customer Records',
+              const SizedBox(width: 6),
+              _buildHeaderActionButton(
+                icon: Icons.cleaning_services_outlined,
+                color: AppTheme.pendingText,
+                tooltip: 'Clear Customer Records (Move to Bin)',
                 onPressed: () async {
                   final confirm = await showDialog<bool>(
                     context: context,
@@ -640,7 +683,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                           ),
                           title: const Text('Clear Customer Records?'),
                           content: Text(
-                            'Are you sure you want to delete all borrowed goods and payment receipts for "${customer.name}"?\n\nThis will reset their pending balance to ₹0.00 while keeping the customer account intact.',
+                            'Are you sure you want to clear all transaction records for "${customer.name}"?\n\nAll borrowed items will be soft-deleted and moved to the Recycle Bin, where they can be restored or will be automatically purged after 72 hours.',
                           ),
                           actions: [
                             TextButton(
@@ -655,7 +698,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                                 backgroundColor: AppTheme.pendingText,
                               ),
                               onPressed: () => Navigator.of(context).pop(true),
-                              child: const Text('Clear Records'),
+                              child: const Text('Move to Bin'),
                             ),
                           ],
                         ),
@@ -667,7 +710,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'All transaction records for ${customer.name} have been cleared.',
+                            'All records for ${customer.name} moved to Recycle Bin (72h auto-purge).',
                           ),
                           backgroundColor: AppTheme.saffronPrimary,
                         ),
@@ -676,6 +719,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                   }
                 },
               ),
+              const SizedBox(width: 12),
             ],
           ),
           body: Column(
@@ -939,30 +983,37 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Pending: ₹${pendingBalance.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color:
-                                  pendingBalance > 0.001
-                                      ? AppTheme.pendingText
-                                      : AppTheme.paidText,
-                            ),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              Text(
+                                'Pending: ₹${pendingBalance.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color:
+                                      pendingBalance > 0.001
+                                          ? AppTheme.pendingText
+                                          : AppTheme.paidText,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '• Borrowed: ₹${totalBorrowed.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '• Borrowed: ₹${totalBorrowed.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
                             visualDensity: VisualDensity.compact,
@@ -1004,24 +1055,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen>
                                 () => _openAddGoodsDialog(
                                   customer,
                                   isLegacyMode: true,
-                                ),
-                          ),
-                          const SizedBox(width: 12),
-                          IconButton(
-                            visualDensity: VisualDensity.compact,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            icon: const Icon(
-                              Icons.assessment_outlined,
-                              size: 18,
-                              color: AppTheme.saffronDark,
-                            ),
-                            tooltip: 'Generate Report',
-                            onPressed:
-                                () => CustomerReportDialog.show(
-                                  context,
-                                  customer: customer,
-                                  repository: widget.repository,
                                 ),
                           ),
                         ],

@@ -5,9 +5,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:udhar_khata/constants/app_constants.dart';
 import 'package:udhar_khata/main.dart';
+import 'package:udhar_khata/screens/dashboard_screen.dart';
 import 'package:udhar_khata/services/auth_service.dart';
 import 'package:udhar_khata/services/security_service.dart';
 import 'package:udhar_khata/services/udhar_repository.dart';
+import 'package:udhar_khata/widgets/animated_reminder_button.dart';
 import 'package:udhar_khata/widgets/customer_report_dialog.dart';
 
 class MockAuthService implements AuthService {
@@ -242,46 +244,120 @@ void main() {
     expect(repository.getRecycleBinGoods(customer.id).length, 0);
   });
 
-  testWidgets('CustomerReportDialog displays report details and item breakdown', (WidgetTester tester) async {
-    final repository = UdharRepository();
-    final customer = await repository.addCustomer(
-      name: 'Report Test Customer',
-      phoneNumber: '9998887770',
-      address: 'Test City',
-    );
+  test(
+    'clearCustomerRecords moves all goods to Recycle Bin (soft delete)',
+    () async {
+      final repository = UdharRepository();
+      final customer = await repository.addCustomer(name: 'Clear Records Test');
 
-    await repository.addGoodItem(
-      customerId: customer.id,
-      name: 'Sample Rice',
-      category: 'Grocery',
-      quantity: 2,
-      unitPrice: 50,
-      date: DateTime(2026, 8, 11, 23, 44),
-    );
+      await repository.addGoodItem(
+        customerId: customer.id,
+        name: 'Item A',
+        category: 'General',
+        quantity: 1,
+        unitPrice: 200,
+      );
+      await repository.addGoodItem(
+        customerId: customer.id,
+        name: 'Item B',
+        category: 'General',
+        quantity: 1,
+        unitPrice: 300,
+      );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Builder(
-            builder: (context) => ElevatedButton(
-              onPressed: () => CustomerReportDialog.show(
-                context,
-                customer: customer,
-                repository: repository,
-              ),
-              child: const Text('Open Report'),
+      expect(repository.getGoodsForCustomer(customer.id).length, 2);
+      expect(repository.getCustomerPendingBalance(customer.id), 500.0);
+
+      // Perform clearCustomerRecords
+      await repository.clearCustomerRecords(customer.id);
+
+      // Active goods list & pending balance should reset to 0
+      expect(repository.getGoodsForCustomer(customer.id).length, 0);
+      expect(repository.getCustomerPendingBalance(customer.id), 0.0);
+
+      // Goods should now be in the Recycle Bin
+      final binGoods = repository.getRecycleBinGoods(customer.id);
+      expect(binGoods.length, 2);
+      expect(binGoods.every((g) => g.isDeleted == true), true);
+    },
+  );
+
+  testWidgets(
+    'CustomerReportDialog displays report details and item breakdown',
+    (WidgetTester tester) async {
+      final repository = UdharRepository();
+      final customer = await repository.addCustomer(
+        name: 'Report Test Customer',
+        phoneNumber: '9998887770',
+        address: 'Test City',
+      );
+
+      await repository.addGoodItem(
+        customerId: customer.id,
+        name: 'Sample Rice',
+        category: 'Grocery',
+        quantity: 2,
+        unitPrice: 50,
+        date: DateTime(2026, 8, 11, 23, 44),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder:
+                  (context) => ElevatedButton(
+                    onPressed:
+                        () => CustomerReportDialog.show(
+                          context,
+                          customer: customer,
+                          repository: repository,
+                        ),
+                    child: const Text('Open Report'),
+                  ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.tap(find.text('Open Report'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Open Report'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Supermart Thermal Bill'), findsOneWidget);
-    expect(find.text('Report Test Customer'), findsOneWidget);
-    expect(find.text('1. Sample Rice'), findsOneWidget);
-    expect(find.text('Send Reminder on WhatsApp'), findsOneWidget);
-  });
+      expect(find.text('Consolidated Report'), findsOneWidget);
+      expect(find.text('Report Test Customer'), findsOneWidget);
+      expect(find.text('1. Sample Rice'), findsOneWidget);
+      expect(find.text('Share Consolidated Statement'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'DashboardScreen renders AnimatedReminderButton for customer card',
+    (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final repository = UdharRepository(null);
+      final authService = MockAuthService();
+      final securityService = SecurityService(prefs);
+
+      await repository.addCustomer(
+        name: 'Reminder Test Customer',
+        phoneNumber: '9876543210',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DashboardScreen(
+            repository: repository,
+            authService: authService,
+            securityService: securityService,
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byType(AnimatedReminderButton), findsOneWidget);
+    },
+  );
 }

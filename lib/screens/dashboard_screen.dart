@@ -8,6 +8,7 @@ import '../services/udhar_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/add_customer_dialog.dart';
 import '../widgets/add_goods_dialog.dart';
+import '../widgets/animated_reminder_button.dart';
 import '../widgets/record_payment_dialog.dart';
 import '../widgets/security_settings_dialog.dart';
 import 'customer_detail_screen.dart';
@@ -656,14 +657,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(
-                                        'Total Items Borrowed: ₹${totalBorrowed.toStringAsFixed(2)}',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: AppTheme.textMuted,
+                                      Expanded(
+                                        child: Text(
+                                          'Total Items Borrowed: ₹${totalBorrowed.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppTheme.textMuted,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                       Row(
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
                                             icon: const Icon(
@@ -689,6 +694,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                   customer,
                                                 ),
                                           ),
+                                          const SizedBox(width: 4),
+                                          AnimatedReminderButton(
+                                            customer: customer,
+                                            repository: widget.repository,
+                                          ),
+                                          const SizedBox(width: 4),
                                           const Icon(
                                             Icons.chevron_right_rounded,
                                             color: AppTheme.textMuted,

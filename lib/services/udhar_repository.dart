@@ -136,24 +136,30 @@ class UdharRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Clears all borrowed goods and payment receipts for a customer without deleting the customer
+  /// Soft-deletes all borrowed goods for a customer (moving them to Recycle Bin with 72h auto-purge) and clears payment receipts
   Future<void> clearCustomerRecords(String customerId) async {
-    final goodsToDelete = _goods.where((g) => g.customerId == customerId).toList();
-    final paymentsToDelete = _payments.where((p) => p.customerId == customerId).toList();
-
-    _goods.removeWhere((g) => g.customerId == customerId);
-    _payments.removeWhere((p) => p.customerId == customerId);
-    await _persistAll();
-
-    if (_firestoreService != null) {
-      for (final g in goodsToDelete) {
-        await _firestoreService.deleteGoodItem(g.id);
+    final now = DateTime.now();
+    for (int i = 0; i < _goods.length; i++) {
+      if (_goods[i].customerId == customerId && _goods[i].isDeleted != true) {
+        _goods[i] = _goods[i].copyWith(
+          isDeleted: true,
+          deletedAt: now,
+        );
+        if (_firestoreService != null) {
+          await _firestoreService.saveGoodItem(_goods[i]);
+        }
       }
+    }
+
+    final paymentsToDelete = _payments.where((p) => p.customerId == customerId).toList();
+    _payments.removeWhere((p) => p.customerId == customerId);
+    if (_firestoreService != null) {
       for (final p in paymentsToDelete) {
         await _firestoreService.deletePaymentRecord(p.id);
       }
     }
 
+    await _persistAll();
     notifyListeners();
   }
 
