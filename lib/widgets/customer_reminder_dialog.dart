@@ -30,8 +30,10 @@ class CustomerReminderDialog extends StatefulWidget {
     return showDialog(
       context: context,
       builder:
-          (context) =>
-              CustomerReminderDialog(customer: customer, repository: repository),
+          (context) => CustomerReminderDialog(
+            customer: customer,
+            repository: repository,
+          ),
     );
   }
 
@@ -80,16 +82,14 @@ class _CustomerReminderDialogState extends State<CustomerReminderDialog> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Could not capture receipt preview. Please try again.'),
+              content: Text(
+                'Could not capture receipt preview. Please try again.',
+              ),
               backgroundColor: Colors.orange,
             ),
           );
         }
         return;
-      }
-
-      if (boundary.debugNeedsPaint) {
-        await Future.delayed(const Duration(milliseconds: 100));
       }
 
       final image = await boundary.toImage(pixelRatio: 3.0);
@@ -113,7 +113,8 @@ class _CustomerReminderDialogState extends State<CustomerReminderDialog> {
         Share.shareXFiles(
           [XFile(filePath)],
           text: messageText,
-          subject: '${AppConstants.appName} Dues Reminder - ${widget.customer.name}',
+          subject:
+              '${AppConstants.appName} Dues Reminder - ${widget.customer.name}',
         ).catchError((shareErr) {
           debugPrint('System share plugin error: $shareErr');
           return const ShareResult('', ShareResultStatus.unavailable);

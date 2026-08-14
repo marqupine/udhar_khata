@@ -92,8 +92,9 @@ class _UdharKhataAppState extends State<UdharKhataApp> {
             return LoginScreen(authService: widget.authService);
           }
 
-          // Ensure User Profile in Firestore is synced
+          // Ensure User Profile in Firestore is synced and data is re-hydrated
           widget.authService.ensureUserSynced();
+          widget.repository.syncFromFirestore(userId: user.uid);
 
           // 2. User signed in, check MPIN/Biometrics Lock
           if (widget.securityService.hasMpin && !_isAppUnlocked) {

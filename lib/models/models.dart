@@ -1,5 +1,25 @@
 import 'dart:convert';
 
+DateTime parseDateTime(dynamic val) {
+  if (val == null) return DateTime.now();
+  if (val is DateTime) return val;
+  if (val is String) {
+    return DateTime.tryParse(val) ?? DateTime.now();
+  }
+  if (val is int) {
+    return DateTime.fromMillisecondsSinceEpoch(val);
+  }
+  try {
+    final dynamic dynamicVal = val;
+    final toDateMethod = dynamicVal.toDate;
+    if (toDateMethod is Function) {
+      final res = dynamicVal.toDate();
+      if (res is DateTime) return res;
+    }
+  } catch (_) {}
+  return DateTime.now();
+}
+
 class Customer {
   final String id;
   final String name;
@@ -31,17 +51,17 @@ class Customer {
     };
   }
 
-  factory Customer.fromMap(Map<String, dynamic> map) {
+  factory Customer.fromMap(Map<String, dynamic> map, {String? docId}) {
+    final rawId = map['id']?.toString().trim();
+    final effectiveId = (rawId != null && rawId.isNotEmpty) ? rawId : (docId ?? '');
     return Customer(
-      id: map['id'] ?? '',
+      id: effectiveId,
       name: map['name'] ?? '',
       phoneNumber: map['phoneNumber'] ?? '',
       address: map['address'] ?? '',
       addedByUserId: map['addedByUserId'] ?? '',
       addedByUserName: map['addedByUserName'] ?? '',
-      createdAt: DateTime.parse(
-        map['createdAt'] ?? DateTime.now().toIso8601String(),
-      ),
+      createdAt: parseDateTime(map['createdAt']),
     );
   }
 
@@ -75,15 +95,15 @@ class AppUser {
     };
   }
 
-  factory AppUser.fromMap(Map<String, dynamic> map) {
+  factory AppUser.fromMap(Map<String, dynamic> map, {String? docId}) {
+    final rawUid = map['uid']?.toString().trim();
+    final effectiveUid = (rawUid != null && rawUid.isNotEmpty) ? rawUid : (docId ?? '');
     return AppUser(
-      uid: map['uid'] ?? '',
+      uid: effectiveUid,
       name: map['name'] ?? '',
       email: map['email'] ?? '',
       phoneNumber: map['phoneNumber'] ?? '',
-      createdAt: DateTime.parse(
-        map['createdAt'] ?? DateTime.now().toIso8601String(),
-      ),
+      createdAt: parseDateTime(map['createdAt']),
     );
   }
 
@@ -152,9 +172,11 @@ class GoodItem {
     };
   }
 
-  factory GoodItem.fromMap(Map<String, dynamic> map) {
+  factory GoodItem.fromMap(Map<String, dynamic> map, {String? docId}) {
+    final rawId = map['id']?.toString().trim();
+    final effectiveId = (rawId != null && rawId.isNotEmpty) ? rawId : (docId ?? '');
     return GoodItem(
-      id: map['id'] ?? '',
+      id: effectiveId,
       customerId: map['customerId'] ?? '',
       name: map['name'] ?? '',
       category: map['category'] ?? 'General',
@@ -162,11 +184,11 @@ class GoodItem {
       unitPrice: (map['unitPrice'] as num?)?.toDouble() ?? 0.0,
       totalPrice: (map['totalPrice'] as num?)?.toDouble(),
       amountPaid: (map['amountPaid'] as num?)?.toDouble() ?? 0.0,
-      date: DateTime.parse(map['date'] ?? DateTime.now().toIso8601String()),
+      date: parseDateTime(map['date']),
       isDeleted: map['isDeleted'] == true,
       deletedAt:
           map['deletedAt'] != null && map['deletedAt'] != 'null'
-              ? DateTime.tryParse(map['deletedAt'].toString())
+              ? parseDateTime(map['deletedAt'])
               : null,
     );
   }
@@ -277,12 +299,14 @@ class PaymentRecord {
     };
   }
 
-  factory PaymentRecord.fromMap(Map<String, dynamic> map) {
+  factory PaymentRecord.fromMap(Map<String, dynamic> map, {String? docId}) {
+    final rawId = map['id']?.toString().trim();
+    final effectiveId = (rawId != null && rawId.isNotEmpty) ? rawId : (docId ?? '');
     return PaymentRecord(
-      id: map['id'] ?? '',
+      id: effectiveId,
       customerId: map['customerId'] ?? '',
       amountPaid: (map['amountPaid'] as num?)?.toDouble() ?? 0.0,
-      date: DateTime.parse(map['date'] ?? DateTime.now().toIso8601String()),
+      date: parseDateTime(map['date']),
       note: map['note'] ?? '',
       settlements:
           (map['settlements'] as List<dynamic>?)

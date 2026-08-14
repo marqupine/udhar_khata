@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -56,10 +57,13 @@ class SecurityService {
     }
   }
 
-  Future<bool> authenticateWithBiometrics({String? reason}) async {
+  Future<bool> authenticateWithBiometrics({
+    String? reason,
+    bool requireEnabledCheck = true,
+  }) async {
     final localizedReason =
         reason ?? 'Authenticate to unlock ${AppConstants.appName}';
-    if (!isBiometricEnabled) return false;
+    if (requireEnabledCheck && !isBiometricEnabled) return false;
     try {
       final isAvailable = await isBiometricHardwareAvailable();
       if (!isAvailable) return false;
@@ -71,7 +75,8 @@ class SecurityService {
           biometricOnly: true,
         ),
       );
-    } on PlatformException catch (_) {
+    } on PlatformException catch (e) {
+      debugPrint('Biometric authentication exception: $e');
       return false;
     }
   }

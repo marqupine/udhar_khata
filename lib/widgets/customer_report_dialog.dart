@@ -92,9 +92,6 @@ class _CustomerReportDialogState extends State<CustomerReportDialog> {
         return;
       }
 
-      if (boundary.debugNeedsPaint) {
-        await Future.delayed(const Duration(milliseconds: 100));
-      }
 
       final image = await boundary.toImage(pixelRatio: 3.0);
       final byteData = await image.toByteData(format: ImageByteFormat.png);

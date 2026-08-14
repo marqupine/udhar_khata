@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../models/models.dart';
 import 'firestore_service.dart';
@@ -10,6 +12,10 @@ class UdharRepository extends ChangeNotifier {
   final List<Customer> _customers = [];
   final List<GoodItem> _goods = [];
   final List<PaymentRecord> _payments = [];
+
+  StreamSubscription<List<Customer>>? _customerSub;
+  StreamSubscription<List<GoodItem>>? _goodsSub;
+  StreamSubscription<List<PaymentRecord>>? _paymentsSub;
 
   UdharRepository([this._storageService, this._firestoreService]) {
     _loadFromStorage();
@@ -35,35 +41,83 @@ class UdharRepository extends ChangeNotifier {
     }
   }
 
-  void _initFirestoreSync() {
+  String? get _currentAuthUserId {
+    try {
+      return FirebaseAuth.instance.currentUser?.uid;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Explicitly re-hydrates data from Firestore and re-subscribes to live streams
+  Future<void> syncFromFirestore({String? userId}) async {
     if (_firestoreService == null) return;
 
-    _firestoreService.streamCustomers().listen((remoteCustomers) {
-      if (remoteCustomers.isNotEmpty) {
-        _customers.clear();
-        _customers.addAll(remoteCustomers);
-        _persistAll();
-        notifyListeners();
-      }
+    final effectiveUserId = (userId != null && userId.isNotEmpty)
+        ? userId
+        : _currentAuthUserId;
+
+    try {
+      final remoteCustomers = await _firestoreService.fetchCustomers(userId: effectiveUserId);
+      _customers.clear();
+      _customers.addAll(remoteCustomers);
+
+      final remoteGoods = await _firestoreService.fetchGoods(userId: effectiveUserId);
+      _goods.clear();
+      _goods.addAll(remoteGoods);
+
+      final remotePayments = await _firestoreService.fetchPayments(userId: effectiveUserId);
+      _payments.clear();
+      _payments.addAll(remotePayments);
+
+      await _persistAll();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error during one-time Firestore fetch: $e');
+    }
+
+    _initFirestoreSync(userId: effectiveUserId);
+  }
+
+  void _initFirestoreSync({String? userId}) {
+    if (_firestoreService == null) return;
+
+    final effectiveUserId = (userId != null && userId.isNotEmpty)
+        ? userId
+        : _currentAuthUserId;
+
+    _customerSub?.cancel();
+    _goodsSub?.cancel();
+    _paymentsSub?.cancel();
+
+    _customerSub = _firestoreService.streamCustomers(userId: effectiveUserId).listen((remoteCustomers) {
+      _customers.clear();
+      _customers.addAll(remoteCustomers);
+      _persistAll();
+      notifyListeners();
     }, onError: (e) => debugPrint('Customer stream error: $e'));
 
-    _firestoreService.streamGoods().listen((remoteGoods) {
-      if (remoteGoods.isNotEmpty) {
-        _goods.clear();
-        _goods.addAll(remoteGoods);
-        _persistAll();
-        notifyListeners();
-      }
+    _goodsSub = _firestoreService.streamGoods(userId: effectiveUserId).listen((remoteGoods) {
+      _goods.clear();
+      _goods.addAll(remoteGoods);
+      _persistAll();
+      notifyListeners();
     }, onError: (e) => debugPrint('Goods stream error: $e'));
 
-    _firestoreService.streamPayments().listen((remotePayments) {
-      if (remotePayments.isNotEmpty) {
-        _payments.clear();
-        _payments.addAll(remotePayments);
-        _persistAll();
-        notifyListeners();
-      }
+    _paymentsSub = _firestoreService.streamPayments(userId: effectiveUserId).listen((remotePayments) {
+      _payments.clear();
+      _payments.addAll(remotePayments);
+      _persistAll();
+      notifyListeners();
     }, onError: (e) => debugPrint('Payments stream error: $e'));
+  }
+
+  @override
+  void dispose() {
+    _customerSub?.cancel();
+    _goodsSub?.cancel();
+    _paymentsSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _persistAll() async {
@@ -95,12 +149,16 @@ class UdharRepository extends ChangeNotifier {
       throw ArgumentError('A customer with the name "$trimmedName" already exists. Customer names must be unique.');
     }
 
+    final effectiveUserId = addedByUserId.isNotEmpty
+        ? addedByUserId
+        : (_currentAuthUserId ?? '');
+
     final customer = Customer(
       id: 'c_${DateTime.now().microsecondsSinceEpoch}_${_customers.length}',
       name: trimmedName,
       phoneNumber: phoneNumber.trim(),
       address: address.trim(),
-      addedByUserId: addedByUserId,
+      addedByUserId: effectiveUserId,
       addedByUserName: addedByUserName,
       createdAt: DateTime.now(),
     );
@@ -108,7 +166,7 @@ class UdharRepository extends ChangeNotifier {
     await _persistAll();
 
     if (_firestoreService != null) {
-      await _firestoreService.saveCustomer(customer);
+      await _firestoreService.saveCustomer(customer, userId: effectiveUserId);
     }
 
     notifyListeners();
@@ -130,7 +188,7 @@ class UdharRepository extends ChangeNotifier {
     await _persistAll();
 
     if (_firestoreService != null) {
-      await _firestoreService.deleteCustomer(customerId);
+      await _firestoreService.deleteCustomer(customerId, userId: _currentAuthUserId);
     }
 
     notifyListeners();
@@ -146,7 +204,7 @@ class UdharRepository extends ChangeNotifier {
           deletedAt: now,
         );
         if (_firestoreService != null) {
-          await _firestoreService.saveGoodItem(_goods[i]);
+          await _firestoreService.saveGoodItem(_goods[i], userId: _currentAuthUserId);
         }
       }
     }
@@ -155,7 +213,7 @@ class UdharRepository extends ChangeNotifier {
     _payments.removeWhere((p) => p.customerId == customerId);
     if (_firestoreService != null) {
       for (final p in paymentsToDelete) {
-        await _firestoreService.deletePaymentRecord(p.id);
+        await _firestoreService.deletePaymentRecord(p.id, userId: _currentAuthUserId);
       }
     }
 
@@ -186,7 +244,7 @@ class UdharRepository extends ChangeNotifier {
     await _persistAll();
 
     if (_firestoreService != null) {
-      await _firestoreService.saveGoodItem(good);
+      await _firestoreService.saveGoodItem(good, userId: _currentAuthUserId);
     }
 
     notifyListeners();
@@ -224,7 +282,7 @@ class UdharRepository extends ChangeNotifier {
     await _persistAll();
 
     if (_firestoreService != null) {
-      await _firestoreService.saveGoodItem(updated);
+      await _firestoreService.saveGoodItem(updated, userId: _currentAuthUserId);
     }
 
     notifyListeners();
@@ -287,7 +345,7 @@ class UdharRepository extends ChangeNotifier {
     await _persistAll();
 
     if (_firestoreService != null) {
-      await _firestoreService.saveGoodItem(updated);
+      await _firestoreService.saveGoodItem(updated, userId: _currentAuthUserId);
     }
 
     notifyListeners();
@@ -316,7 +374,7 @@ class UdharRepository extends ChangeNotifier {
     await _persistAll();
 
     if (_firestoreService != null) {
-      await _firestoreService.saveGoodItem(updated);
+      await _firestoreService.saveGoodItem(updated, userId: _currentAuthUserId);
     }
 
     notifyListeners();
@@ -329,7 +387,7 @@ class UdharRepository extends ChangeNotifier {
     await _persistAll();
 
     if (_firestoreService != null) {
-      await _firestoreService.deleteGoodItem(goodId);
+      await _firestoreService.deleteGoodItem(goodId, userId: _currentAuthUserId);
     }
 
     notifyListeners();
@@ -357,7 +415,7 @@ class UdharRepository extends ChangeNotifier {
 
     if (_firestoreService != null) {
       for (final g in expired) {
-        await _firestoreService.deleteGoodItem(g.id);
+        await _firestoreService.deleteGoodItem(g.id, userId: _currentAuthUserId);
       }
     }
 
@@ -439,8 +497,8 @@ class UdharRepository extends ChangeNotifier {
     await _persistAll();
 
     if (_firestoreService != null) {
-      await _firestoreService.savePaymentRecord(paymentRecord);
-      await _firestoreService.saveGoodItemsBatch(updatedGoods);
+      await _firestoreService.savePaymentRecord(paymentRecord, userId: _currentAuthUserId);
+      await _firestoreService.saveGoodItemsBatch(updatedGoods, userId: _currentAuthUserId);
     }
 
     notifyListeners();
@@ -479,8 +537,8 @@ class UdharRepository extends ChangeNotifier {
         await _persistAll();
 
         if (_firestoreService != null) {
-          await _firestoreService.saveGoodItem(_goods[index]);
-          await _firestoreService.savePaymentRecord(paymentRecord);
+          await _firestoreService.saveGoodItem(_goods[index], userId: _currentAuthUserId);
+          await _firestoreService.savePaymentRecord(paymentRecord, userId: _currentAuthUserId);
         }
 
         notifyListeners();
@@ -514,10 +572,10 @@ class UdharRepository extends ChangeNotifier {
 
     if (_firestoreService != null) {
       for (final g in expiredGoods) {
-        await _firestoreService.deleteGoodItem(g.id);
+        await _firestoreService.deleteGoodItem(g.id, userId: _currentAuthUserId);
       }
       for (final p in expiredPayments) {
-        await _firestoreService.deletePaymentRecord(p.id);
+        await _firestoreService.deletePaymentRecord(p.id, userId: _currentAuthUserId);
       }
     }
 
